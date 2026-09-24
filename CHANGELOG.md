@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — 2026-09-24
+
+- Produto renomeado para Intensivo para SESI-RS.
+- Referências pessoais removidas da interface e do conteúdo.
+- Migração transparente do progresso salvo para a nova chave do aplicativo.
+
 ## 1.2.0 — 2026-09-24
 
 - Novo módulo Avaliação Socioemocional — Treino SESI-RS.
@@ -16,7 +22,7 @@
 
 ## 1.0.0 — 2026-09-24
 
-- Lançamento inicial da plataforma Intensivão SESI-RS — Isabele.
+- Lançamento inicial da plataforma de preparação para o SESI-RS.
 - Trilhas orientadas para sexta-feira e sábado.
 - Banco de questões, simulados, redação, socioemocional, progresso e caderno de erros.
 - Publicação como aplicação web responsiva.

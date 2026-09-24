@@ -1,10 +1,10 @@
-# Intensivão SESI-RS — Isabele
+# Intensivo para SESI-RS
 
 Biblioteca de estudos e treinamento emergencial de dois dias para o Processo Seletivo do Ensino Médio SESI-RS de 27/09/2026.
 
 ## Objetivo
 
-Maximizar o desempenho de Isabele nos conteúdos do edital, com foco no mínimo de 50% em Matemática, Língua Portuguesa e Produção Textual.
+Maximizar o desempenho nos conteúdos do edital, com foco no mínimo de 50% em Matemática, Língua Portuguesa e Produção Textual.
 
 ## Público-alvo
 
@@ -20,6 +20,7 @@ Abra `dist/index.html` no navegador ou sirva a pasta `dist` com qualquer servido
 
 ## Roadmap inicial
 
+- v1.2.1: identidade atualizada para Intensivo para SESI-RS, sem personalização individual.
 - v1.2.0: módulo socioemocional narrativo com três etapas, 42 situações, treino rápido, consequências e análise educativa.
 - v1.1.0: 60 questões e sorteio sem repetição até o esgotamento do banco em cada modo.
 - v1.0.0: trilhas de sexta e sábado, biblioteca objetiva, prática com correção, caderno de erros, redação, socioemocional, desafio rápido, simulado final, revisão e painel de progresso.

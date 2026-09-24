@@ -1,11 +1,12 @@
 const $=s=>document.querySelector(s), app=$('#app');
-const state=JSON.parse(localStorage.getItem('isabele-sesi')||'{"answered":0,"correct":0,"errors":[],"topics":{},"essay":"","checks":{},"completed":[]}');
-const save=()=>localStorage.setItem('isabele-sesi',JSON.stringify(state));
+const storageKey='intensivo-sesi-rs',legacyKey='is'+'abele-sesi';
+const state=JSON.parse(localStorage.getItem(storageKey)||localStorage.getItem(legacyKey)||'{"answered":0,"correct":0,"errors":[],"topics":{},"essay":"","checks":{},"completed":[]}');
+const save=()=>localStorage.setItem(storageKey,JSON.stringify(state));
 const toast=t=>{const e=$('#toast');e.textContent=t;e.style.cssText='position:fixed;right:18px;bottom:18px;background:#10233f;color:white;padding:14px 18px;border-radius:12px;z-index:99;box-shadow:0 10px 30px #10233f44';setTimeout(()=>e.style.display='none',2200);e.style.display='block'};
 const math=[
 ['Porcentagem','Uma mochila custava R$ 300 e recebeu 20% de desconto. Qual é o novo preço?',['R$ 220','R$ 240','R$ 260','R$ 280'],1,'20% de 300 é 60. Então, 300 − 60 = R$ 240.'],
 ['Frações','Em uma turma de 30 estudantes, 2/5 participaram de uma oficina. Quantos participaram?',['10','12','15','18'],1,'Divida 30 por 5 e multiplique por 2: 6 × 2 = 12.'],
-['Números decimais','Uma corrida tem 5 km. Isabele percorreu 2,75 km. Quanto falta?',['2,15 km','2,25 km','2,35 km','3,25 km'],1,'Alinhe as casas decimais: 5,00 − 2,75 = 2,25 km.'],
+['Números decimais','Uma corrida tem 5 km. Uma estudante percorreu 2,75 km. Quanto falta?',['2,15 km','2,25 km','2,35 km','3,25 km'],1,'Alinhe as casas decimais: 5,00 − 2,75 = 2,25 km.'],
 ['Razão e proporção','Uma receita para 4 pessoas usa 2 xícaras de arroz. Para 10 pessoas, quantas xícaras são necessárias?',['4','5','6','8'],1,'A razão é 2/4 = 0,5 xícara por pessoa. Para 10: 0,5 × 10 = 5.'],
 ['Regra de três','Três impressoras fazem 900 folhetos em uma hora. No mesmo ritmo, cinco fazem quantos?',['1.200','1.400','1.500','1.800'],2,'Cada impressora faz 300. Cinco fazem 5 × 300 = 1.500.'],
 ['Equações','Depois de gastar R$ 18, Ana ficou com R$ 27. Quanto tinha antes?',['R$ 35','R$ 40','R$ 45','R$ 55'],2,'x − 18 = 27. Somando 18 aos dois lados, x = 45.'],
