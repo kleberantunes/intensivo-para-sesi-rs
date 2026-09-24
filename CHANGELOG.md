@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-09-24
+
+- Novo módulo Avaliação Socioemocional — Treino SESI-RS.
+- Simulação completa em três etapas com 18 situações e consequências narrativas.
+- Banco inicial com 42 situações, três níveis de dificuldade e classificação por competências.
+- Desafio socioemocional de 5 minutos sem repetição entre rodadas.
+- Painel educativo de competências e revisão das decisões, sem diagnóstico ou gabarito.
+
 ## 1.1.0 — 2026-09-24
 
 - Banco ampliado de 30 para 60 questões contextualizadas.
