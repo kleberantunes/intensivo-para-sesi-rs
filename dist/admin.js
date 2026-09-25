@@ -138,6 +138,7 @@
             checks: (data.checks && typeof data.checks === "object") ? data.checks : {},
             completed: Array.isArray(data.completed) ? data.completed : [],
             topics: (data.topics && typeof data.topics === "object") ? data.topics : {},
+            essayHistory: Array.isArray(data.essayHistory) ? data.essayHistory : [],
             lastUpdated: data.lastUpdated || data.lastLoginAt || 0,
             createdAt: data.createdAt || 0
           });
@@ -236,7 +237,7 @@
             </td>
             <td>
               <div>${wordCount > 0 ? `<b>${wordCount}</b> palavras` : '<span style="color:var(--muted);">Não iniciada</span>'}</div>
-              <small style="color:var(--muted);">${checkedCount}/4 tópicos</small>
+              <small style="color:var(--muted);">${checkedCount}/4 tópicos ${(u.essayHistory && u.essayHistory.length) ? `· <b style="color:var(--blue);">${u.essayHistory.length} versão(ões)</b>` : ''}</small>
             </td>
             <td>
               <span style="font-weight:700; color:${socioDone ? '#15803d' : '#94a3b8'};">
@@ -343,9 +344,26 @@
             </div>
 
             <div class="detail-section">
-              <h4>Produção Textual (Redação) · ${wordCount} palavras</h4>
-              ${u.essay ? `<div class="essay-preview">${u.essay}</div>` : '<p style="color:var(--muted);">Nenhuma redação iniciada ainda.</p>'}
+              <h4>Produção Textual Atual · ${wordCount} palavras</h4>
+              ${u.essay ? `<div class="essay-preview">${u.essay}</div>` : '<p style="color:var(--muted);">Nenhuma redação ativa no momento.</p>'}
             </div>
+
+            ${(u.essayHistory && u.essayHistory.length) ? `
+              <div class="detail-section">
+                <h4>Histórico de Redações & Ideias (${u.essayHistory.length} versões registradas)</h4>
+                <div style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto; padding-right:4px;">
+                  ${u.essayHistory.map((h, idx) => `
+                    <div style="background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:12px;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                        <b>${h.prompt || 'Proposta Geral'}</b>
+                        <small style="color:var(--muted);">${h.dateFormatted || formatDate(h.timestamp)} · <b>${h.wordCount || 0} palavras</b></small>
+                      </div>
+                      <div style="font-size:0.86rem; color:var(--ink); white-space:pre-wrap; max-height:100px; overflow-y:auto; background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; line-height:1.5;">${h.text}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
 
             <div class="detail-section">
               <h4>Caderno de Erros Recentes (${u.errors.length} registrados)</h4>

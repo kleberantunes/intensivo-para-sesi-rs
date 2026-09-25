@@ -1,6 +1,7 @@
 const $=s=>document.querySelector(s), app=$('#app');
 const storageKey='intensivo-sesi-rs',legacyKey='is'+'abele-sesi';
-const state=JSON.parse(localStorage.getItem(storageKey)||localStorage.getItem(legacyKey)||'{"answered":0,"correct":0,"errors":[],"topics":{},"essay":"","checks":{},"completed":[]}');
+const state=JSON.parse(localStorage.getItem(storageKey)||localStorage.getItem(legacyKey)||'{"answered":0,"correct":0,"errors":[],"topics":{},"essay":"","checks":{},"completed":[],"essayHistory":[]}');
+state.essayHistory=Array.isArray(state.essayHistory)?state.essayHistory:[];
 const save=()=>{localStorage.setItem(storageKey,JSON.stringify(state));if(window.cloudSync&&typeof window.cloudSync.scheduleSave==='function'){window.cloudSync.scheduleSave(state)}};
 const toast=t=>{const e=$('#toast');e.textContent=t;e.style.cssText='position:fixed;right:18px;bottom:18px;background:#10233f;color:white;padding:14px 18px;border-radius:12px;z-index:99;box-shadow:0 10px 30px #10233f44';setTimeout(()=>e.style.display='none',2200);e.style.display='block'};
 window.toast=toast;
@@ -92,7 +93,316 @@ function renderPractice(){const q=practiceSet[practiceIndex];app.innerHTML=`<div
 function questionHTML(q,id){return `<article class="question" id="${id}"><span class="eyebrow">${q[0]}</span><h3>${q[1]}</h3><div class="options">${q[2].map((o,i)=>`<button class="option" data-choice="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div><div class="feedback hidden"></div></article>`}
 function bindImmediate(q,id,done){const root=$('#'+id);root.querySelectorAll('.option').forEach(b=>b.onclick=()=>{if(root.dataset.done)return;root.dataset.done=1;const c=+b.dataset.choice,ok=c===q[3];b.classList.add(ok?'correct':'wrong');root.querySelectorAll('.option')[q[3]].classList.add('correct');const f=root.querySelector('.feedback');f.classList.remove('hidden');f.innerHTML=`<b>${ok?'Acertou!':'Entenda o erro'}</b><br>${q[4]}`;record(q,c,ok);done()})}
 function record(q,c,ok){state.answered++;if(ok)state.correct++;state.topics[q[0]]=(state.topics[q[0]]||{a:0,c:0});state.topics[q[0]].a++;if(ok)state.topics[q[0]].c++;else state.errors.unshift({subject:math.includes(q)?'Matemática':'Português',topic:q[0],question:q[1],chosen:q[2][c],correct:q[2][q[3]],explain:q[4]});save()}
-function essay(){app.innerHTML=`<div class="shell"><div class="section-head"><div><span class="eyebrow">Produção textual</span><h1>Escreva com uma estrutura segura.</h1><p>Introdução apresenta a ideia; cada desenvolvimento explica um argumento; a conclusão retoma e fecha o raciocínio.</p></div></div><div class="essay-layout"><aside class="card"><h3>Escolha uma proposta</h3><div class="prompt-list">${essays.map((x,i)=>`<button class="${i===0?'active':''}" onclick="selectPrompt(this,'${x}')">${i+1}. ${x}</button>`).join('')}</div><div class="callout"><b>Plano rápido</b><br>1. Qual ideia vou defender?<br>2. Quais dois argumentos sustentam essa ideia?<br>3. Como vou concluir?</div></aside><section class="writer"><span class="eyebrow" id="essayPrompt">${essays[0]}</span><h2>Meu texto</h2><textarea id="essayText" placeholder="Comece planejando. Depois escreva com suas próprias palavras...">${state.essay||''}</textarea><div class="counter"><span id="wordCount">0 palavras</span><span id="paraCount">0 parágrafos</span></div><div class="checks">${['Introdução','Desenvolvimento 1','Desenvolvimento 2','Conclusão'].map((x,i)=>`<label><input type="checkbox" data-check="${i}" ${state.checks[i]?'checked':''}> ${x}</label>`).join('')}</div><div class="actions" style="margin-top:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:16px; border-top:1px solid var(--line);"><button id="saveEssayBtn" class="btn" style="min-width:180px; font-size:0.95rem;">💾 Salvar Redação</button><span id="essaySaveStatus" class="muted" style="font-size:0.86rem; display:inline-flex; align-items:center; gap:6px;">☁️ Salvo automaticamente</span></div></section></div></div>`;const t=$('#essayText'),saveBtn=$('#saveEssayBtn'),statusEl=$('#essaySaveStatus');const count=()=>{const s=t.value.trim();$('#wordCount').textContent=`${s?s.split(/\s+/).length:0} palavras`;$('#paraCount').textContent=`${s?s.split(/\n\s*\n/).filter(Boolean).length:0} parágrafos`;state.essay=t.value;save();if(statusEl){statusEl.innerHTML=`<span>⏳</span> Salvando alterações...`}};t.oninput=count;count();document.querySelectorAll('[data-check]').forEach(x=>x.onchange=()=>{state.checks[x.dataset.check]=x.checked;save();if(statusEl){statusEl.innerHTML=`<span>☁️</span> Salvo`}});if(saveBtn){saveBtn.onclick=async()=>{state.essay=t.value;save();if(window.cloudSync&&typeof window.cloudSync.flushSave==='function'){saveBtn.disabled=true;saveBtn.innerHTML=`<span>⏳ Gravando na nuvem...</span>`;await window.cloudSync.flushSave()}saveBtn.disabled=false;saveBtn.style.background='#15803d';saveBtn.innerHTML=`<span>✓ Redação Salva!</span>`;if(statusEl){const hora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});statusEl.innerHTML=`<span>✅</span> Salvo às ${hora}`}toast('Redação salva com sucesso! ☁️');setTimeout(()=>{saveBtn.style.background='';saveBtn.innerHTML=`💾 Salvar Redação`},2500)}}}
+function essay(){
+  app.innerHTML=`<div class="shell">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Produção textual</span>
+        <h1>Escreva com uma estrutura segura.</h1>
+        <p>Introdução apresenta a ideia; cada desenvolvimento explica um argumento; a conclusão retoma e fecha o raciocínio.</p>
+      </div>
+    </div>
+    <div class="essay-layout">
+      <aside class="card">
+        <h3>Escolha uma proposta</h3>
+        <div class="prompt-list">
+          ${essays.map((x,i)=>`<button class="${i===0?'active':''}" onclick="selectPrompt(this,'${x}')">${i+1}. ${x}</button>`).join('')}
+        </div>
+        <div class="callout">
+          <b>Plano rápido</b><br>
+          1. Qual ideia vou defender?<br>
+          2. Quais dois argumentos sustentam essa ideia?<br>
+          3. Como vou concluir?
+        </div>
+      </aside>
+      <section class="writer">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div>
+            <span class="eyebrow" id="essayPrompt" style="margin:0 0 4px 0; display:inline-block;">${essays[0]}</span>
+            <h2 style="margin:0;">Meu texto</h2>
+          </div>
+          <button id="newEssayBtn" class="btn light btn-sm" style="font-size:0.8rem; padding:6px 12px; cursor:pointer;" title="Começar uma nova redação">
+            ➕ Novo Texto (Limpar)
+          </button>
+        </div>
+        <textarea id="essayText" placeholder="Comece planejando. Depois escreva com suas próprias palavras...">${state.essay||''}</textarea>
+        <div class="counter">
+          <span id="wordCount">0 palavras</span>
+          <span id="paraCount">0 parágrafos</span>
+        </div>
+        <div class="checks">
+          ${['Introdução','Desenvolvimento 1','Desenvolvimento 2','Conclusão'].map((x,i)=>`<label><input type="checkbox" data-check="${i}" ${state.checks[i]?'checked':''}> ${x}</label>`).join('')}
+        </div>
+        <div class="actions" style="margin-top:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding-top:16px; border-top:1px solid var(--line);">
+          <button id="saveEssayBtn" class="btn" style="min-width:180px; font-size:0.95rem;">
+            💾 Salvar Redação
+          </button>
+          <span id="essaySaveStatus" class="muted" style="font-size:0.86rem; display:inline-flex; align-items:center; gap:6px;">
+            ☁️ Salvo automaticamente
+          </span>
+        </div>
+      </section>
+    </div>
+
+    <!-- HISTÓRICO DE REDAÇÕES E PROGRESSÃO -->
+    <section class="card" style="margin-top:28px; padding:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div>
+          <span class="eyebrow" style="color:var(--blue);">Evolução Textual</span>
+          <h2 style="margin:4px 0;">📚 Histórico de Redações & Ideias</h2>
+          <p class="muted" style="margin:0;">Acompanhe sua evolução ao longo dos treinos, compare versões e recupere rascunhos para continuar aprimorando.</p>
+        </div>
+        <div id="historyCountBadge" class="score ok" style="font-size:0.85rem; padding:6px 14px;">
+          ${(state.essayHistory || []).length} versão(ões) salva(s)
+        </div>
+      </div>
+      <div id="essayHistoryContainer"></div>
+    </section>
+  </div>`;
+
+  const t = $('#essayText'), saveBtn = $('#saveEssayBtn'), newBtn = $('#newEssayBtn'), statusEl = $('#essaySaveStatus');
+
+  const count = () => {
+    const s = t.value.trim();
+    $('#wordCount').textContent = `${s ? s.split(/\s+/).length : 0} palavras`;
+    $('#paraCount').textContent = `${s ? s.split(/\n\s*\n/).filter(Boolean).length : 0} parágrafos`;
+    state.essay = t.value;
+    save();
+    if (statusEl) {
+      statusEl.innerHTML = `<span>⏳</span> Salvando alterações...`;
+    }
+  };
+
+  t.oninput = count;
+  count();
+  if (statusEl) statusEl.innerHTML = `<span>☁️</span> Salvo`;
+
+  document.querySelectorAll('[data-check]').forEach(x => x.onchange = () => {
+    state.checks[x.dataset.check] = x.checked;
+    save();
+    if (statusEl) statusEl.innerHTML = `<span>☁️</span> Salvo`;
+  });
+
+  // Salvar no Histórico com registro de versão
+  if (saveBtn) {
+    saveBtn.onclick = async () => {
+      const text = t.value.trim();
+      if (!text) {
+        toast('Escreva seu texto antes de salvar no histórico.');
+        return;
+      }
+
+      state.essay = t.value;
+      state.essayHistory = Array.isArray(state.essayHistory) ? state.essayHistory : [];
+
+      const currentPromptText = document.getElementById("essayPrompt") ? document.getElementById("essayPrompt").textContent : essays[0];
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      const paraCount = text.split(/\n\s*\n/).filter(Boolean).length;
+      const now = Date.now();
+      const dateStr = new Date(now).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + new Date(now).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+      const existingIdx = state.essayHistory.findIndex(h => h.text.trim() === text && h.prompt === currentPromptText);
+      if (existingIdx !== -1) {
+        state.essayHistory[existingIdx].timestamp = now;
+        state.essayHistory[existingIdx].dateFormatted = dateStr;
+        state.essayHistory[existingIdx].checks = { ...(state.checks || {}) };
+      } else {
+        state.essayHistory.unshift({
+          id: "essay_" + now,
+          prompt: currentPromptText,
+          text: t.value,
+          wordCount,
+          paraCount,
+          checks: { ...(state.checks || {}) },
+          timestamp: now,
+          dateFormatted: dateStr
+        });
+      }
+
+      save();
+
+      if (window.cloudSync && typeof window.cloudSync.flushSave === 'function') {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span>⏳ Gravando na nuvem...</span>`;
+        await window.cloudSync.flushSave();
+      }
+
+      saveBtn.disabled = false;
+      saveBtn.style.background = '#15803d';
+      saveBtn.innerHTML = `<span>✓ Redação Salva!</span>`;
+      if (statusEl) {
+        const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        statusEl.innerHTML = `<span>✅</span> Salvo às ${hora}`;
+      }
+      renderEssayHistory();
+      toast('Redação gravada no histórico e salva na nuvem! ☁️');
+      setTimeout(() => {
+        saveBtn.style.background = '';
+        saveBtn.innerHTML = `💾 Salvar Redação`;
+      }, 2500);
+    };
+  }
+
+  // Iniciar nova redação
+  if (newBtn) {
+    newBtn.onclick = () => {
+      const currentText = t.value.trim();
+      if (currentText.length > 0) {
+        const alreadyInHistory = (state.essayHistory || []).some(h => h.text.trim() === currentText);
+        if (!alreadyInHistory) {
+          state.essayHistory = state.essayHistory || [];
+          state.essayHistory.unshift({
+            id: "essay_" + Date.now(),
+            prompt: document.getElementById("essayPrompt") ? document.getElementById("essayPrompt").textContent : essays[0],
+            text: t.value,
+            wordCount: currentText.split(/\s+/).filter(Boolean).length,
+            paraCount: currentText.split(/\n\s*\n/).filter(Boolean).length,
+            checks: { ...(state.checks || {}) },
+            timestamp: Date.now(),
+            dateFormatted: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+          });
+        }
+      }
+
+      t.value = '';
+      state.essay = '';
+      state.checks = {};
+      document.querySelectorAll('[data-check]').forEach(x => x.checked = false);
+      count();
+      renderEssayHistory();
+      toast('Editor limpo para nova redação! O texto anterior está salvo no histórico.');
+      t.focus();
+    };
+  }
+
+  renderEssayHistory();
+}
+
+function renderEssayHistory(){
+  const container = document.getElementById("essayHistoryContainer");
+  const badge = document.getElementById("historyCountBadge");
+  if (!container) return;
+
+  const history = state.essayHistory || [];
+  if (badge) badge.textContent = `${history.length} versão(ões) no histórico`;
+
+  if (!history.length) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:36px 16px; background:#f8fafc; border-radius:14px; border:1px dashed var(--line); color:var(--muted);">
+        <div style="font-size:1.8rem; margin-bottom:8px;">📝</div>
+        <b>Nenhuma redação registrada no histórico ainda.</b>
+        <p style="font-size:0.9rem; margin-top:4px;">Escreva suas ideias no editor acima e clique no botão <b>"💾 Salvar Redação"</b> para registrar sua progressão aqui!</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:grid; gap:14px;">
+      ${history.map(item => {
+        const words = item.wordCount || (item.text ? item.text.trim().split(/\s+/).filter(Boolean).length : 0);
+        const paras = item.paraCount || (item.text ? item.text.trim().split(/\n\s*\n/).filter(Boolean).length : 0);
+        const checksCount = Object.values(item.checks || {}).filter(Boolean).length;
+        const dateStr = item.dateFormatted || (item.timestamp ? new Date(item.timestamp).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "Recente");
+
+        return `
+          <article style="background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 2px 6px rgba(16,35,63,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+              <div>
+                <span class="eyebrow" style="color:var(--blue); font-size:0.75rem; margin-bottom:4px; display:inline-block;">Proposta</span>
+                <h4 style="margin:0; font-size:1.05rem; color:var(--ink);">${item.prompt || 'Proposta Geral'}</h4>
+              </div>
+              <div style="font-size:0.82rem; font-weight:700; color:var(--muted); background:#f1f5f9; padding:4px 10px; border-radius:20px;">
+                📅 ${dateStr}
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; font-size:0.82rem;">
+              <span style="background:#edf3ff; color:var(--blue); font-weight:700; padding:4px 10px; border-radius:8px;">
+                ✍️ ${words} palavras
+              </span>
+              <span style="background:#f8fafc; color:var(--ink); font-weight:600; padding:4px 10px; border-radius:8px; border:1px solid var(--line);">
+                📑 ${paras} parágrafo(s)
+              </span>
+              <span style="background:${checksCount === 4 ? '#e9f8f1' : '#f8fafc'}; color:${checksCount === 4 ? '#15803d' : 'var(--muted)'}; font-weight:600; padding:4px 10px; border-radius:8px; border:1px solid var(--line);">
+                ${checksCount === 4 ? '✅ Estrutura completa (4/4)' : `⏳ ${checksCount}/4 tópicos`}
+              </span>
+            </div>
+
+            <details style="background:#f8fafc; border-radius:10px; border:1px solid var(--line); padding:10px 14px; margin-bottom:14px;">
+              <summary style="cursor:pointer; font-weight:700; font-size:0.88rem; color:var(--blue); user-select:none;">
+                👁️ Visualizar texto completo desta versão (${words} palavras)
+              </summary>
+              <div style="margin-top:12px; font-size:0.92rem; line-height:1.7; color:var(--ink); white-space:pre-wrap; border-top:1px dashed #cbd5e1; padding-top:10px;">${item.text}</div>
+            </details>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+              <button class="btn light btn-sm" onclick="window.loadEssayFromHistory('${item.id}')" style="font-size:0.82rem; padding:7px 13px; cursor:pointer;">
+                ✏️ Carregar no Editor
+              </button>
+              <button class="btn light btn-sm" onclick="window.deleteEssayFromHistory('${item.id}')" style="font-size:0.82rem; padding:7px 11px; color:var(--red); cursor:pointer;">
+                🗑️ Excluir
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+window.loadEssayFromHistory = function(id) {
+  const item = (state.essayHistory || []).find(h => h.id === id);
+  if (!item) return;
+
+  const t = document.getElementById("essayText");
+  if (!t) return;
+
+  if (t.value.trim().length > 0 && t.value.trim() !== item.text.trim()) {
+    if (!confirm("Deseja carregar esta versão no editor? O texto atual será substituído (mas continua seguro no histórico).")) {
+      return;
+    }
+  }
+
+  t.value = item.text || "";
+  state.essay = item.text || "";
+  state.checks = { ...(item.checks || {}) };
+
+  if (item.prompt) {
+    const promptEl = document.getElementById("essayPrompt");
+    if (promptEl) promptEl.textContent = item.prompt;
+    document.querySelectorAll(".prompt-list button").forEach(b => {
+      b.classList.toggle("active", b.textContent.includes(item.prompt));
+    });
+  }
+
+  document.querySelectorAll("[data-check]").forEach(x => {
+    x.checked = !!state.checks[x.dataset.check];
+  });
+
+  const s = t.value.trim();
+  const wordCountEl = document.getElementById("wordCount");
+  const paraCountEl = document.getElementById("paraCount");
+  if (wordCountEl) wordCountEl.textContent = `${s ? s.split(/\s+/).length : 0} palavras`;
+  if (paraCountEl) paraCountEl.textContent = `${s ? s.split(/\n\s*\n/).filter(Boolean).length : 0} parágrafos`;
+
+  save();
+  t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  t.focus();
+  toast("Redação carregada no editor!");
+};
+
+window.deleteEssayFromHistory = function(id) {
+  if (!confirm("Deseja realmente remover esta versão do histórico?")) return;
+  state.essayHistory = (state.essayHistory || []).filter(h => h.id !== id);
+  save();
+  if (window.cloudSync && typeof window.cloudSync.flushSave === 'function') {
+    window.cloudSync.flushSave();
+  }
+  renderEssayHistory();
+  toast("Versão removida do histórico.");
+};
+
 function selectPrompt(el,text){document.querySelectorAll('.prompt-list button').forEach(x=>x.classList.remove('active'));el.classList.add('active');$('#essayPrompt').textContent=text}
 function errors(){app.innerHTML=`<div class="shell"><div class="section-head"><div><span class="eyebrow">Caderno automático</span><h1>Meus Erros</h1><p>Reveja o raciocínio e tente uma questão do mesmo assunto.</p></div>${state.errors.length?'<button class="btn" data-go="practice" data-arg="priority">Treinar meus erros</button>':''}</div>${state.errors.length?state.errors.slice(0,20).map(e=>`<article class="question"><span class="eyebrow">${e.subject} · ${e.topic}</span><h3>${e.question}</h3><p><b>Sua resposta:</b> ${e.chosen}</p><p><b>Resposta correta:</b> ${e.correct}</p><div class="feedback"><b>Resolução</b><br>${e.explain}</div></article>`).join(''):'<div class="empty"><h2>Nenhum erro registrado ainda.</h2><p>Faça um bloco de prática; quando errar, a explicação ficará guardada aqui.</p><button class="btn" data-go="practice">Começar prática</button></div>'}</div>`}
 function progress(){const rate=state.answered?Math.round(state.correct/state.answered*100):0;const essayP=Math.min(100,(state.essay.trim().split(/\s+/).filter(Boolean).length>=120?60:20)+Object.values(state.checks).filter(Boolean).length*10);const weak=Object.entries(state.topics).filter(([,v])=>v.c/v.a<.6).map(([k])=>k);const strong=Object.entries(state.topics).filter(([,v])=>v.a>0&&v.c/v.a>=.8).map(([k])=>k);app.innerHTML=`<div class="shell"><div class="section-head"><div><span class="eyebrow">Meu progresso</span><h1>O próximo passo está claro.</h1><p>A prioridade é reduzir erros nos assuntos mais frágeis, não completar tudo.</p></div></div><div class="metric-grid">${[['Questões',state.answered],['Acertos',state.correct],['Erros',state.answered-state.correct],['Taxa de acerto',rate+'%']].map(x=>`<div class="card"><small>${x[0]}</small><div class="stat">${x[1]}</div></div>`).join('')}</div><div class="grid" style="margin-top:16px">${[['Matemática',subjectRate(math)],['Português',subjectRate(port)],['Produção textual',essayP],['Socioemocional',state.completed.includes('socio')?100:0]].map(x=>`<div class="card"><h3>${x[0]}</h3><div class="stat">${x[1]}%</div><div class="progressbar"><i style="width:${x[1]}%"></i></div></div>`).join('')}</div><div class="grid" style="margin-top:16px"><div class="card span2"><h3>Assuntos dominados</h3><p>${strong.join(' · ')||'Continue praticando para identificar seus pontos fortes.'}</p></div><div class="card span2"><h3>Precisam de revisão</h3><p>${weak.join(' · ')||'Nenhuma prioridade detectada por enquanto.'}</p><button class="btn" data-go="practice" data-arg="priority">Estudar o que mais preciso</button></div></div></div>`}

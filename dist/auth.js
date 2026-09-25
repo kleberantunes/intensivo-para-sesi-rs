@@ -163,6 +163,18 @@
       merged.seen[k] = Array.from(set);
     });
 
+    // Funde o histórico de redações evitando duplicações por id ou prompt+timestamp
+    const historyMap = new Map();
+    (cloud.essayHistory || []).forEach(h => {
+      if (h && (h.id || h.timestamp)) historyMap.set(h.id || (h.prompt + '_' + h.timestamp), h);
+    });
+    (local.essayHistory || []).forEach(h => {
+      if (h && (h.id || h.timestamp)) historyMap.set(h.id || (h.prompt + '_' + h.timestamp), h);
+    });
+    const mergedHistory = Array.from(historyMap.values());
+    mergedHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    merged.essayHistory = mergedHistory;
+
     return merged;
   }
 
@@ -174,6 +186,7 @@
       errors: Array.isArray(state.errors) ? state.errors : [],
       topics: (state.topics && typeof state.topics === "object") ? state.topics : {},
       essay: typeof state.essay === "string" ? state.essay : "",
+      essayHistory: Array.isArray(state.essayHistory) ? state.essayHistory : [],
       checks: (state.checks && typeof state.checks === "object") ? state.checks : {},
       completed: Array.isArray(state.completed) ? state.completed : [],
       seen: (state.seen && typeof state.seen === "object") ? state.seen : {},
