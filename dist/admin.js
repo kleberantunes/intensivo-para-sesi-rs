@@ -77,7 +77,7 @@
         dashboardView.classList.add("hidden");
         adminProfile.classList.add("hidden");
         authGate.classList.remove("hidden");
-        gateMessage.textContent = "Este painel é de acesso exclusivo para a administração. Faça login com a conta Google autorizada.";
+        gateMessage.textContent = "Faça login com sua conta Google para sincronizar seu progresso ou gerenciar os acessos dos estudantes.";
         gateLoginBtn.classList.remove("hidden");
         return;
       }
@@ -91,7 +91,7 @@
         dashboardView.classList.add("hidden");
         adminProfile.classList.add("hidden");
         authGate.classList.remove("hidden");
-        gateMessage.innerHTML = `A conta <b>${user.email}</b> não tem privilégios de administrador.<br>Acesse com a conta cadastrada ou volte para o aplicativo.`;
+        gateMessage.innerHTML = `Olá, <b>${escapeHTML(user.displayName || user.email)}</b>!<br>Seu ambiente de simulados, questões e redação está no portal de estudos.`;
         gateLoginBtn.classList.add("hidden");
         return;
       }

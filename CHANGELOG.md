@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.4 — 2026-09-25
+
+- **Substituição da "Área Restrita" por Portal Educacional Acolhedor (`admin.html` / `admin.css` / `admin.js`):** Removido o visual anterior de bloqueio/cadeado. Agora a tela exibe o título **"Acesse o portal de estudo para a prova do SESI-RS"** com ícone acadêmico (`🎓`), mensagem acolhedora e botão direto de navegação:
+  - Botão principal: `Entrar com Google`
+  - Botão secundário: `Ir para a página de estudos →` (redirecionando para o ambiente de simulados, questões e redação).
+- **Tratamento Humanizado para Estudantes:** Caso um aluno conectado acesse o link de administração, o sistema o cumprimenta pelo nome e o direciona com destaque para o seu ambiente de estudos.
+- **Cache-Busting Global v1.7.4:** Atualização automática das versões dos assets para entrega instantânea.
+
 ## 1.7.3 — 2026-09-25
 
 - **Módulo Pedagógico "Entenda o Erro & Aprenda a Fazer" (`app.js` / `styles.css`):** Ao errar qualquer questão, o estudante não recebe apenas um texto solto, mas sim um diagnóstico completo estruturado:

@@ -14,6 +14,12 @@
 
 ## 🕒 Linha do Tempo e Histórico Completo de Alterações
 
+### [v1.7.4] — 25/09/2026
+#### 1. Transformação Visual: Portal de Estudo Acolhedor
+- **Substituição de "Área Restrita":** Removido o cartão com ícone de cadeado e mensagem restritiva. O título passa a ser **"Acesse o portal de estudo para a prova do SESI-RS"** com ícone acadêmico (`🎓`).
+- **Navegação Direta para os Estudos:** Inclusão de botão destacado `Ir para a página de estudos →` para que qualquer usuário acerte o caminho para o ambiente de questões, simulados e redação com 1 clique.
+- **Feedback Humanizado:** Se um estudante logado acessar o link de administração, o sistema o saúda pelo nome e oferece o botão para ir ao portal de estudos.
+
 ### [v1.7.3] — 25/09/2026
 #### 1. Sistema Didático "Entenda o Erro & Aprenda a Fazer"
 - **Diagnóstico Comparativo Visual:** Ao errar uma questão, o aluno visualiza lado a lado a opção que marcou em destaque de alerta (❌) e a opção correta oficial (✅).

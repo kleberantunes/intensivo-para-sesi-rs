@@ -286,15 +286,16 @@
 }
 
 .auth-gate-icon {
-  width: 64px;
-  height: 64px;
-  background: #feecef;
-  color: var(--red);
-  border-radius: 20px;
+  width: 68px;
+  height: 68px;
+  background: #eaf2ff;
+  color: var(--blue);
+  border-radius: 22px;
   display: grid;
   place-items: center;
-  font-size: 1.8rem;
-  margin: 0 auto 20px;
+  font-size: 2rem;
+  margin: 0 auto 18px;
+  box-shadow: 0 4px 12px rgba(40, 100, 220, 0.12);
 }
 
 .auth-gate h2 {
