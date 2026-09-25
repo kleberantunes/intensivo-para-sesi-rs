@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-09-24
+
+- **Autenticação com Google (OAuth):** Integração com Firebase Authentication para login seguro com 1 clique.
+- **Sincronização em Nuvem (Cloud Firestore):** Salvamento automático e em tempo real do progresso de questões, simulados, caderno de erros, redação e módulo socioemocional.
+- **Arquitetura Local-First Híbrida:** O aplicativo continua funcionando offline via `localStorage` e realiza fusão inteligente (merge) dos dados assim que o usuário conecta com o Google, sem perda de progresso.
+- **Interface de Usuário e Feedback:** Botão de login do Google na barra superior, avatar com nome do estudante, indicador de status de sincronização (`Salvo`, `Salvando...`) e opção de logout.
+- **Regras de Segurança (`firestore.rules`):** Isolamento estrito de dados por UID para total privacidade entre diferentes estudantes.
+- **Documentação de Implantação:** Guia passo a passo para configuração do Firebase e publicação no GitHub Pages, Firebase Hosting e Vercel.
+
 ## 1.2.1 — 2026-09-24
 
 - Produto renomeado para Intensivo para SESI-RS.
