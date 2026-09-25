@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#10233f">
   <meta name="description" content="Dashboard de controle de acesso e acompanhamento de estudantes - Intensivo para SESI-RS.">
   <title>Painel de Controle de Acesso · Intensivo SESI-RS</title>
-  <link rel="stylesheet" href="styles.css?v=1.7.0">
-  <link rel="stylesheet" href="admin.css?v=1.7.0">
+  <link rel="stylesheet" href="styles.css?v=1.7.1">
+  <link rel="stylesheet" href="admin.css?v=1.7.1">
 </head>
 <body>
   <header class="topbar">
@@ -56,6 +56,7 @@
               <span style="width:8px; height:8px; background:#16a34a; border-radius:50%; display:inline-block; box-shadow:0 0 0 2px rgba(34,197,94,0.3);"></span>
               Tempo Real Ativo
             </span>
+            <button id="addStudentBtn" class="btn" style="font-size: 0.85rem; padding: 8px 16px; background: var(--blue); color: #fff; border: none; font-weight: 700;">➕ Adicionar Estudante</button>
             <button id="refreshBtn" class="btn light" style="font-size: 0.85rem;">🔄 Atualizar Lista</button>
           </div>
         </div>
@@ -140,10 +141,11 @@
   </main>
 
   <div id="detailModalContainer"></div>
+  <div id="addUserModalContainer"></div>
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <script src="firebase-config.js?v=1.7.0"></script>
-  <script src="progress-store.js?v=1.7.0"></script>
-  <script src="admin.js?v=1.7.0"></script>
+  <script src="firebase-config.js?v=1.7.1"></script>
+  <script src="progress-store.js?v=1.7.1"></script>
+  <script src="admin.js?v=1.7.1"></script>
 </body>
 </html>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1 — 2026-09-25
+
+- **Cadastro e Adição de Novos Estudantes no Painel Admin (`admin.html` / `admin.js`):** Implementado botão `➕ Adicionar Estudante` com modal interativo para cadastro de nome, e-mail Google e status de acesso (Ativo/Bloqueado).
+- **Pré-Cadastro com Vinculação Automática (`auth.js`):** Estudantes cadastrados previamente pelo admin têm seus dados e status herdados de forma transparente no momento em que fazem login com o Google pela primeira vez.
+- **Ação de Exclusão de Estudantes (`admin.js`):** Adicionado botão de remoção (`🗑️`) com confirmação de segurança para limpar usuários de teste ou visitantes inativos.
+- **Identificação Visual de Status:** Distinção visual na tabela para estudantes "Aguardando 1º Acesso", "Ativo (Liberado)", "Visitante" e "Bloqueado".
+- **Ajuste de Permissões no Firestore Rules (`firestore.rules`):** Simplificação de `isAdmin()` para evitar bloqueios indevidos por claims estritas de `email_verified`.
+
 ## 1.7.0 — 2026-09-25
 
 - **Super Banco de Questões (340 questões):** 170 questões de Língua Portuguesa e 170 de Matemática, incluindo as 40 questões originais do Caderno Inova Médio 2025 e 300 questões autorais de alta profundidade.

@@ -53,15 +53,27 @@
   function payload(state,identity) {
     return {...P.normalize(state),userEmail:identity.email||'',
       userName:identity.isAnonymous?'Usuário não logado · '+identity.uid.slice(0,6):(identity.displayName||'Estudante'),
-      userPhoto:identity.photoURL||'',isAnonymous:!!identity.isAnonymous,appVersion:'1.6.0',lastUpdated:Date.now()};
+      userPhoto:identity.photoURL||'',isAnonymous:!!identity.isAnonymous,appVersion:'1.7.1',lastUpdated:Date.now()};
   }
   async function commit(identity,snapshot,extra={}) {
     const ref=api.doc(db,'users',identity.uid);
     return api.runTransaction(db,async tx=>{
-      const saved=await tx.get(ref),cloud=saved.exists()?saved.data():null;
+      const saved=await tx.get(ref);
+      let cloud=saved.exists()?saved.data():null;
+      if(!saved.exists()&&identity.email) {
+        const preDocId='student_'+identity.email.toLowerCase().replace(/[^a-z0-9]/g,'_');
+        const preRef=api.doc(db,'users',preDocId);
+        const preSaved=await tx.get(preRef);
+        if(preSaved.exists()) {
+          cloud=preSaved.data();
+          try { tx.delete(preRef); } catch(e){}
+        }
+      }
       if(cloud?.status==='blocked')throw Object.assign(new Error('Acesso suspenso'),{code:'access-blocked'});
       const merged=P.merge(snapshot,cloud);
-      tx.set(ref,{...payload(merged,identity),...extra,...(!saved.exists()?{status:'active',createdAt:Date.now()}:{} )},{merge:true});
+      const userStatus=cloud?.status||'active';
+      const userCreated=cloud?.createdAt||Date.now();
+      tx.set(ref,{...payload(merged,identity),...extra,status:userStatus,createdAt:userCreated,isPreRegistered:false},{merge:true});
       return merged;
     });
   }

@@ -58,7 +58,7 @@
   try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { getFirestore, collection, doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app = initializeApp(config);
     auth = getAuth(app);
@@ -133,6 +133,7 @@
             email: data.isAnonymous ? 'Visitante · progresso deste navegador' : data.userEmail || "Sem e-mail",
             photo: data.userPhoto || "",
             status: data.status || "active",
+            isPreRegistered: !!data.isPreRegistered,
             answered: typeof data.answered === "number" ? data.answered : 0,
             correct: typeof data.correct === "number" ? data.correct : 0,
             errors: Array.isArray(data.errors) ? data.errors : [],
@@ -231,7 +232,7 @@
             </td>
             <td>
               <span class="status-badge ${isBlocked ? 'blocked' : 'active'}">
-                ${isBlocked ? '🚫 Bloqueado' : u.isAnonymous ? 'Visitante (sem login)' : '🟢 Ativo (Liberado)'}
+                ${isBlocked ? '🚫 Bloqueado' : u.isPreRegistered ? '⏳ Aguardando Acesso' : u.isAnonymous ? 'Visitante (sem login)' : '🟢 Ativo (Liberado)'}
               </span>
             </td>
             <td>
@@ -253,10 +254,13 @@
             <td>
               <div class="action-buttons">
                 <button class="btn-sm ${isBlocked ? 'btn-unblock' : 'btn-block'}" onclick="window.toggleUserStatus('${u.id}', '${isBlocked ? 'active' : 'blocked'}')">
-                  ${isBlocked ? 'Liberar Acesso' : 'Bloquear'}
+                  ${isBlocked ? 'Liberar' : 'Bloquear'}
                 </button>
                 <button class="btn-sm" onclick="window.openDetailModal('${u.id}')">
                   Detalhes
+                </button>
+                <button class="btn-sm" style="background:#fff1f2; color:#b52e3b; border:1px solid #fecaca;" title="Excluir estudante" onclick="window.deleteUser('${u.id}', '${escapeHTML(u.name)}')">
+                  🗑️
                 </button>
               </div>
             </td>
@@ -283,6 +287,21 @@
       } catch (err) {
         console.error("Erro ao alterar status:", err);
         toast("Erro ao alterar status: " + err.message);
+      }
+    };
+
+    // Ação: Remover / Excluir Estudante
+    window.deleteUser = async function (userId, userName) {
+      try {
+        if (!confirm(`Tem certeza de que deseja excluir o cadastro de "${userName}"?\nEsta ação removerá o registro e todo o progresso associado.`)) return;
+        await deleteDoc(doc(db, "users", userId));
+        allStudents = allStudents.filter(u => u.id !== userId);
+        renderKPIs();
+        renderTable();
+        toast(`Estudante ${userName} removido.`);
+      } catch (err) {
+        console.error("Erro ao excluir estudante:", err);
+        toast("Erro ao excluir: " + err.message);
       }
     };
 
@@ -425,6 +444,128 @@
       await signOut(auth);
       location.reload();
     });
+
+    // Modal de Cadastro de Novo Estudante
+    const addStudentBtn = document.getElementById("addStudentBtn");
+    const addUserModalContainer = document.getElementById("addUserModalContainer");
+
+    if (addStudentBtn) {
+      addStudentBtn.addEventListener("click", () => {
+        window.openAddUserModal();
+      });
+    }
+
+    window.openAddUserModal = function () {
+      if (!addUserModalContainer) return;
+      addUserModalContainer.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target === this) window.closeAddUserModal()">
+          <div class="detail-modal" style="max-width:480px;">
+            <div class="detail-modal-header">
+              <h3 style="margin:0; color:var(--ink);">➕ Adicionar Novo Estudante</h3>
+              <button class="btn light" onclick="window.closeAddUserModal()" style="padding:6px 12px; font-size:1.1rem;">&times;</button>
+            </div>
+            <form id="newStudentForm" onsubmit="event.preventDefault(); window.saveNewStudent();">
+              <div style="margin: 16px 0 14px;">
+                <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--ink);">Nome do Estudante *</label>
+                <input type="text" id="newStudentName" required placeholder="Ex: Lucas Silva" style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:0.95rem; box-sizing:border-box;">
+              </div>
+              <div style="margin-bottom: 16px;">
+                <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--ink);">E-mail do Google (Gmail) *</label>
+                <input type="email" id="newStudentEmail" required placeholder="aluno@gmail.com" style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:0.95rem; box-sizing:border-box;">
+                <small style="color:var(--muted); font-size:0.8rem; display:block; margin-top:4px;">O estudante usará esta conta Google para acessar e registrar seu progresso.</small>
+              </div>
+              <div style="margin-bottom: 22px;">
+                <label style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px; color:var(--ink);">Status Inicial de Acesso</label>
+                <select id="newStudentStatus" style="width:100%; padding:10px 14px; border:1px solid var(--line); border-radius:10px; font-size:0.95rem; box-sizing:border-box; background:#fff;">
+                  <option value="active">🟢 Ativo (Liberar Acesso Imediatamente)</option>
+                  <option value="blocked">🚫 Bloqueado (Suspender Acesso Inicialmente)</option>
+                </select>
+              </div>
+              <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn light" onclick="window.closeAddUserModal()">Cancelar</button>
+                <button type="submit" id="saveStudentBtn" class="btn" style="background:var(--blue); color:#fff; font-weight:700;">Salvar e Liberar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      setTimeout(() => {
+        const input = document.getElementById("newStudentName");
+        if (input) input.focus();
+      }, 50);
+    };
+
+    window.closeAddUserModal = function () {
+      if (addUserModalContainer) addUserModalContainer.innerHTML = "";
+    };
+
+    window.saveNewStudent = async function () {
+      const nameInput = document.getElementById("newStudentName");
+      const emailInput = document.getElementById("newStudentEmail");
+      const statusSelect = document.getElementById("newStudentStatus");
+      const submitBtn = document.getElementById("saveStudentBtn");
+
+      if (!nameInput || !emailInput) return;
+      const name = nameInput.value.trim();
+      const email = emailInput.value.trim().toLowerCase();
+      const status = statusSelect ? statusSelect.value : "active";
+
+      if (!name) { toast("Informe o nome do estudante."); return; }
+      if (!email || !email.includes("@")) { toast("Informe um e-mail válido."); return; }
+
+      // Verifica se e-mail já existe na base
+      const existing = allStudents.find(u => (u.email || "").toLowerCase() === email);
+      if (existing) {
+        toast("Já existe um estudante registrado com este e-mail.");
+        return;
+      }
+
+      try {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Salvando...";
+        }
+
+        const docId = "student_" + email.replace(/[^a-z0-9]/g, "_");
+        const newDocRef = doc(db, "users", docId);
+
+        const newStudentData = {
+          userEmail: email,
+          userName: name,
+          userPhoto: "",
+          status: status,
+          isAnonymous: false,
+          isPreRegistered: true,
+          answered: 0,
+          correct: 0,
+          errors: [],
+          essay: "",
+          essayHistory: [],
+          checks: {},
+          completed: [],
+          topics: {},
+          subjects: { math: { a: 0, c: 0 }, port: { a: 0, c: 0 } },
+          legacyBaseline: { answered: 0, correct: 0, topics: {}, subjects: {} },
+          sessions: {},
+          createdAt: Date.now(),
+          lastUpdated: Date.now(),
+          lastLoginAt: 0,
+          appVersion: "1.7.1"
+        };
+
+        await setDoc(newDocRef, newStudentData);
+        toast(`Estudante ${name} adicionado com sucesso!`);
+        window.closeAddUserModal();
+      } catch (err) {
+        console.error("Erro ao salvar novo estudante:", err);
+        toast("Erro ao cadastrar: " + err.message);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Salvar e Liberar";
+        }
+      }
+    };
 
   } catch (err) {
     console.error("Falha ao inicializar painel:", err);

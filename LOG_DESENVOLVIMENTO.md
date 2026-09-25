@@ -14,6 +14,15 @@
 
 ## 🕒 Linha do Tempo e Histórico Completo de Alterações
 
+### [v1.7.1] — 25/09/2026
+#### 1. Cadastro e Adição de Novos Estudantes pelo Painel Admin
+- **Botão `➕ Adicionar Estudante`:** Integrado ao header do painel administrativo com modal interativo.
+- **Campos Obrigatórios:** Nome do Aluno, E-mail Google (Gmail) e Status Inicial (Ativo/Liberado ou Bloqueado).
+- **Pré-Cadastro Transparente:** O documento do aluno é salvo no Firestore com identificador `student_[email]`. Quando o aluno fizer login pela primeira vez com o Google, o `auth.js` detecta o pré-cadastro, herda as permissões e migra para o UID oficial sem qualquer atrito.
+- **Ação de Exclusão (`🗑️`):** Permite ao administrador remover estudantes de teste ou visitantes inativos com confirmação segura de exclusão no Firestore.
+- **Status Visual Aprimorado:** Novo badge `⏳ Aguardando Acesso` na tabela para indicar estudantes cadastrados que ainda não realizaram o primeiro login.
+- **Firestore Rules:** Simplificação da regra `isAdmin()` para dispensar checagem estrita de `email_verified`, prevenindo falhas de permissão.
+
 ### [v1.7.0] — 25/09/2026
 #### 1. Super Banco de 340 Questões no Padrão Oficial SESI/SENAI
 - **Expansão Massiva:** Criação e integração do banco isolado em `dist/questions.js` totalizando 340 questões (170 de Língua Portuguesa e 170 de Matemática).
