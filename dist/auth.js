@@ -313,13 +313,51 @@
           console.error("Erro ao carregar dados do usuário:", err);
           setSyncStatus("Offline / Local", "📱", false);
         }
+        const existingBanner = document.getElementById("loginPromptBanner");
+        if (existingBanner) existingBanner.remove();
       } else {
         // UI deslogado
         if (loginBtn) loginBtn.classList.remove("hidden");
         if (userProfile) userProfile.classList.add("hidden");
         setSyncStatus("", "");
+
+        // Se o estudante tem questões feitas salvas localmente, avisa para conectar e salvar na nuvem
+        const localState = window.getAppState ? window.getAppState() : null;
+        if (localState && localState.answered > 0 && !document.getElementById("loginPromptBanner")) {
+          const banner = document.createElement("div");
+          banner.id = "loginPromptBanner";
+          banner.style.cssText = "background:#fff8df; border:1px solid #ffd566; color:#784900; padding:12px 18px; border-radius:12px; margin:16px auto; max-width:1180px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-weight:700; font-size:0.9rem; box-shadow:0 4px 12px rgba(16,35,63,0.05);";
+          banner.innerHTML = `
+            <span>⚠️ Você tem <b>${localState.answered} questão(ões)</b> feitas neste aparelho. Conecte sua conta Google para enviar ao professor.</span>
+            <button onclick="document.getElementById('loginBtn').click()" class="btn-sm" style="background:#10233f; color:#fff; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer;">
+              Conectar com Google e Enviar
+            </button>
+          `;
+          const appMain = document.getElementById("app");
+          if (appMain && appMain.parentNode) {
+            appMain.parentNode.insertBefore(banner, appMain);
+          }
+        }
       }
     });
+
+    // Clique no selo de nuvem para forçar sincronização imediata
+    if (syncStatus) {
+      syncStatus.style.cursor = "pointer";
+      syncStatus.title = "Clique para sincronizar com a nuvem agora";
+      syncStatus.onclick = async () => {
+        if (!currentUser) {
+          if (loginBtn) loginBtn.click();
+          return;
+        }
+        setSyncStatus("Sincronizando...", "⏳", true);
+        const st = window.getAppState ? window.getAppState() : null;
+        if (st) {
+          await syncToCloud(st);
+          if (typeof window.toast === "function") window.toast("Progresso sincronizado com a nuvem! ☁️");
+        }
+      };
+    }
 
     // Eventos de clique
     if (loginBtn) {
