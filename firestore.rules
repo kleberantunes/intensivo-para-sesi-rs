@@ -1,30 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Função auxiliar para verificar permissão de administrador
     function isAdmin() {
-      return request.auth != null && (
-        request.auth.token.email in ['djkleber@gmail.com']
-      );
+      return request.auth != null
+        && request.auth.token.get('email', '') == 'djkleber@gmail.com'
+        && request.auth.token.get('email_verified', false) == true;
     }
-
-    match /users/{userId} {
-      // Leitura de um usuário: o próprio usuário ou o administrador
-      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      
-      // Listagem geral de usuários: exclusivamente para o administrador
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validScore() {
+      return request.resource.data.answered is int && request.resource.data.answered >= 0
+        && request.resource.data.correct is int && request.resource.data.correct >= 0
+        && request.resource.data.correct <= request.resource.data.answered;
+    }
+    match /users/{uid} {
+      allow get: if isOwner(uid) || isAdmin();
       allow list: if isAdmin();
-      
-      // Gravação: administrador pode alterar tudo (incluindo status); 
-      // Usuário pode gravar se for o dono da conta e não estiver com acesso bloqueado.
-      // Usamos checagem defensiva de existência (!('status' in resource.data)) para evitar erros caso o campo ainda não exista.
-      allow write: if request.auth != null && (
-        isAdmin() || 
-        (
-          request.auth.uid == userId && 
-          (resource == null || !('status' in resource.data) || resource.data.status != 'blocked')
-        )
-      );
+      allow create: if isAdmin() || (isOwner(uid) && validScore()
+        && request.resource.data.get('status', 'active') == 'active');
+      allow update: if isAdmin() || (isOwner(uid) && validScore()
+        && resource.data.get('status', 'active') != 'blocked'
+        && request.resource.data.get('status', 'active') == resource.data.get('status', 'active')
+        && request.resource.data.answered >= resource.data.get('answered', 0)
+        && request.resource.data.correct >= resource.data.get('correct', 0));
+      allow delete: if isAdmin();
     }
   }
 }

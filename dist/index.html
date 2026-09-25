@@ -6,8 +6,9 @@
   <meta name="theme-color" content="#10233f">
   <meta name="description" content="Preparação intensiva de dois dias para o Processo Seletivo SESI-RS.">
   <title>Intensivo para SESI-RS</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="socio.css">
+  <link rel="stylesheet" href="styles.css?v=1.7.0">
+  <link rel="stylesheet" href="socio.css?v=1.7.0">
+  <link rel="stylesheet" href="sync.css?v=1.7.0">
 </head>
 <body>
   <header class="topbar">
@@ -27,27 +28,27 @@
         <div id="userProfile" class="user-profile hidden">
           <img id="userAvatar" class="user-avatar" src="" alt="Avatar">
           <span id="userName" class="user-name"></span>
-          <span id="syncStatus" class="sync-badge" title="Progresso salvo na nuvem">☁️</span>
           <button id="logoutBtn" class="btn-logout" title="Sair da conta">Sair</button>
         </div>
+        <span id="guestLabel" class="user-name">Visitante</span>
+        <button id="syncStatus" type="button" class="sync-badge pending" aria-live="polite">Conectando…</button>
       </div>
       <button class="menu" id="menuBtn" aria-label="Abrir menu">☰</button>
     </div>
 
     <nav id="nav">
-      <button data-go="home">Início</button><button data-go="trail">Trilha</button><button data-go="practice">Praticar</button><button data-go="essay">Redação</button><button data-go="errors">Meus erros</button><button data-go="progress">Progresso</button>
+      <button data-go="home">Início</button><button data-go="officialExam">Prova Oficial</button><button data-go="trail">Trilha</button><button data-go="practice">Praticar</button><button data-go="essay">Redação</button><button data-go="errors">Meus erros</button><button data-go="progress">Progresso</button>
     </nav>
   </header>
+  <p id="visitorNotice" class="visitor-notice">Você está estudando como visitante. Seu progresso será identificado por um código no painel do responsável. Entre com o Google para continuar em outro aparelho.</p>
   <main id="app" tabindex="-1"></main>
-  <footer><span>v1.5.0</span><span>Developed by AK Labs</span></footer>
+  <footer><span>v1.7.0</span><span>Developed by AK Labs</span></footer>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="firebase-config.js?v=1.5.0"></script>
-  <script src="app.js?v=1.5.0"></script>
-  <script src="questions-extra-1.js?v=1.5.0"></script>
-  <script src="questions-extra-2.js?v=1.5.0"></script>
-  <script src="questions-extra-3.js?v=1.5.0"></script>
-  <script src="questions-extra-4.js?v=1.5.0"></script>
-  <script src="socio.js?v=1.5.0"></script>
-  <script src="auth.js?v=1.5.0"></script>
+  <script src="firebase-config.js?v=1.7.0"></script>
+  <script src="progress-store.js?v=1.7.0"></script>
+  <script src="questions.js?v=1.7.0"></script>
+  <script src="app.js?v=1.7.0"></script>
+  <script src="socio.js?v=1.7.0"></script>
+  <script src="auth.js?v=1.7.0"></script>
 </body>
 </html>

@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#10233f">
   <meta name="description" content="Dashboard de controle de acesso e acompanhamento de estudantes - Intensivo para SESI-RS.">
   <title>Painel de Controle de Acesso · Intensivo SESI-RS</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="styles.css?v=1.7.0">
+  <link rel="stylesheet" href="admin.css?v=1.7.0">
 </head>
 <body>
   <header class="topbar">
@@ -98,6 +98,8 @@
           <div>
             <select id="statusFilter" class="filter-select">
               <option value="all">Todos os Status</option>
+              <option value="guests">Usuários não logados</option>
+              <option value="registered">Contas com login</option>
               <option value="active">Apenas Ativos (Liberados)</option>
               <option value="blocked">Apenas Bloqueados</option>
             </select>
@@ -140,7 +142,8 @@
   <div id="detailModalContainer"></div>
   <div id="toast" role="status" aria-live="polite"></div>
 
-  <script src="firebase-config.js?v=1.4.2"></script>
-  <script src="admin.js?v=1.4.2"></script>
+  <script src="firebase-config.js?v=1.7.0"></script>
+  <script src="progress-store.js?v=1.7.0"></script>
+  <script src="admin.js?v=1.7.0"></script>
 </body>
 </html>

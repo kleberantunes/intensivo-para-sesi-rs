@@ -35,6 +35,7 @@
   let allStudents = [];
   let unsubscribeRealtime = null;
   let currentModalUserId = null;
+  const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
 
@@ -68,7 +69,7 @@
       loadingState.classList.add("hidden");
       currentAdmin = user;
 
-      if (!user) {
+      if (!user || user.isAnonymous) {
         if (unsubscribeRealtime) {
           unsubscribeRealtime();
           unsubscribeRealtime = null;
@@ -123,12 +124,13 @@
         allStudents = [];
 
         snap.forEach((d) => {
-          const data = d.data();
+          const raw = d.data();
+          const data = {...raw, ...window.AKProgress.normalize(raw)};
           allStudents.push({
             id: d.id,
             ...data,
-            name: data.userName || "Estudante sem nome",
-            email: data.userEmail || "Sem e-mail",
+            name: data.isAnonymous ? 'Usuário não logado · ' + d.id.slice(0,6) : data.userName || "Estudante sem nome",
+            email: data.isAnonymous ? 'Visitante · progresso deste navegador' : data.userEmail || "Sem e-mail",
             photo: data.userPhoto || "",
             status: data.status || "active",
             answered: typeof data.answered === "number" ? data.answered : 0,
@@ -143,6 +145,10 @@
             createdAt: data.createdAt || 0
           });
         });
+
+        // The signed-in row now owns this visitor's transferred history; don't count it twice.
+        const transferred = new Set(allStudents.map(u => u.guestOriginUid).filter(Boolean));
+        allStudents = allStudents.filter(u => !u.isAnonymous || !transferred.has(u.id));
 
         renderKPIs();
         renderTable();
@@ -182,7 +188,7 @@
 
       let filtered = allStudents.filter(u => {
         const matchesQuery = u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query);
-        const matchesStatus = status === "all" || (status === "active" && u.status !== "blocked") || (status === "blocked" && u.status === "blocked");
+        const matchesStatus = status === "all" || (status === "guests" && u.isAnonymous) || (status === "registered" && !u.isAnonymous) || (status === "active" && u.status !== "blocked") || (status === "blocked" && u.status === "blocked");
         return matchesQuery && matchesStatus;
       });
 
@@ -218,14 +224,14 @@
               <div class="student-cell">
                 <img class="student-avatar" src="${u.photo || defaultAvatar}" alt="Avatar">
                 <div class="student-info">
-                  <b>${u.name}</b>
-                  <small>${u.email}</small>
+                  <b>${escapeHTML(u.name)}</b>
+                  <small>${escapeHTML(u.email)}</small>
                 </div>
               </div>
             </td>
             <td>
               <span class="status-badge ${isBlocked ? 'blocked' : 'active'}">
-                ${isBlocked ? '🚫 Bloqueado' : '🟢 Ativo (Liberado)'}
+                ${isBlocked ? '🚫 Bloqueado' : u.isAnonymous ? 'Visitante (sem login)' : '🟢 Ativo (Liberado)'}
               </span>
             </td>
             <td>
@@ -300,8 +306,8 @@
               <div class="student-cell">
                 <img class="student-avatar" src="${u.photo || defaultAvatar}" alt="Avatar">
                 <div class="student-info">
-                  <h3 style="margin:0;">${u.name}</h3>
-                  <small>${u.email} · ID: <code>${u.id}</code></small>
+                  <h3 style="margin:0;">${escapeHTML(u.name)}</h3>
+                  <small>${escapeHTML(u.email)} · ID: <code>${u.id}</code></small>
                 </div>
               </div>
               <button class="btn light" onclick="window.closeDetailModal()" style="padding:6px 12px; font-size:1.1rem;">&times;</button>
@@ -345,7 +351,7 @@
 
             <div class="detail-section">
               <h4>Produção Textual Atual · ${wordCount} palavras</h4>
-              ${u.essay ? `<div class="essay-preview">${u.essay}</div>` : '<p style="color:var(--muted);">Nenhuma redação ativa no momento.</p>'}
+              ${u.essay ? `<div class="essay-preview">${escapeHTML(u.essay)}</div>` : '<p style="color:var(--muted);">Nenhuma redação ativa no momento.</p>'}
             </div>
 
             ${(u.essayHistory && u.essayHistory.length) ? `
@@ -355,10 +361,10 @@
                   ${u.essayHistory.map((h, idx) => `
                     <div style="background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:12px;">
                       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
-                        <b>${h.prompt || 'Proposta Geral'}</b>
+                        <b>${escapeHTML(h.prompt || 'Proposta Geral')}</b>
                         <small style="color:var(--muted);">${h.dateFormatted || formatDate(h.timestamp)} · <b>${h.wordCount || 0} palavras</b></small>
                       </div>
-                      <div style="font-size:0.86rem; color:var(--ink); white-space:pre-wrap; max-height:100px; overflow-y:auto; background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; line-height:1.5;">${h.text}</div>
+                      <div style="font-size:0.86rem; color:var(--ink); white-space:pre-wrap; max-height:100px; overflow-y:auto; background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; line-height:1.5;">${escapeHTML(h.text)}</div>
                     </div>
                   `).join('')}
                 </div>
@@ -369,8 +375,8 @@
               <h4>Caderno de Erros Recentes (${u.errors.length} registrados)</h4>
               ${u.errors.length ? u.errors.slice(0, 10).map((e, idx) => `
                 <div class="error-item">
-                  <b>${idx + 1}. [${e.subject || 'Geral'} - ${e.topic || 'Tópico'}]</b> ${e.question}<br>
-                  <span style="color:#b52e3b;">Marcou: ${e.chosen}</span> | <span style="color:#13784d;">Correta: ${e.correct}</span>
+                  <b>${idx + 1}. [${escapeHTML(e.subject || 'Geral')} - ${escapeHTML(e.topic || 'Tópico')} ]</b> ${escapeHTML(e.question)}<br>
+                  <span style="color:#b52e3b;">Marcou: ${escapeHTML(e.chosen)}</span> | <span style="color:#13784d;">Correta: ${escapeHTML(e.correct)}</span>
                 </div>
               `).join('') : '<p style="color:var(--muted);">Nenhum erro registrado.</p>'}
             </div>

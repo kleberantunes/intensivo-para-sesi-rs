@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.7.0 — 2026-09-25
+
+- **Super Banco de Questões (340 questões):** 170 questões de Língua Portuguesa e 170 de Matemática, incluindo as 40 questões originais do Caderno Inova Médio 2025 e 300 questões autorais de alta profundidade.
+- **5 Alternativas e Gabarito Calibrado:** Todas as 340 questões contam com 5 alternativas (A, B, C, D, E) e resoluções comentadas detalhadas.
+- **Simulado Completo Ampliado:** O Simulado Final agora conta com 40 questões balanceadas (20 de Matemática e 20 de Português) e proposta de redação independente.
+- **Cache-Busting Global v1.7.0:** Versionamento automático de assets para atualização instantânea em clientes conectados.
+
+## 1.6.0 — 2026-09-25
+
+- **Autenticação Anônima (Visitantes no Painel):** Usuários que praticam sem login agora recebem UID anônimo do Firebase e sincronizam suas respostas com o Firestore, aparecendo no painel administrativo como "Usuário não logado · [ID]".
+- **Filtro de Visitantes no Admin:** O dashboard administrativo ganhou filtro dedicado para "Usuários não logados" e "Contas com login".
+- **Motor de Fusão e Proteção Anti-Perda (`progress-store.js`):** Arquitetura que impede que estados vazios ou incompletos sobrescrevam o histórico na nuvem; respostas de múltiplos aparelhos ou sessões offline são somadas sem duplicidade.
+- **Transição Suave Convidado -> Google:** Ao fazer login com o Google, o histórico anônimo é transferido para a conta Google sem perder acertos ou progresso acumulado.
+- **Regras de Segurança Atualizadas (`firestore.rules`):** Regras no Firestore protegem contra redução indevida de pontuação (`answered` e `correct`) e autorizam visitantes e admins de forma segura.
+
+## 1.5.0 — 2026-09-25
+
+- **Alinhamento com a Prova SESI 2025:** Reestruturação pedagógica para o nível real de cobrança do caderno do processo seletivo.
+- **Isolamento do Banco (`dist/questions.js`):** Separação dos dados de questões da lógica de navegação do app.
+
+## 1.4.3 — 2026-09-24
+
+- **Ajuste de cache e sincronização:** Headers `no-cache`, botão de sincronização manual e avisos visuais de status.
+
 ## 1.4.0 — 2026-09-24
 
 - **Dashboard de Controle de Acesso (`admin.html`):** Painel administrativo exclusivo para gestão de estudantes e controle de permissões.
