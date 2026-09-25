@@ -13,3 +13,7 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "1234567890",
   appId: "1:1234567890:web:abcdef123456"
 };
+
+window.ADMIN_EMAILS = [
+  "seu-email@gmail.com"
+];

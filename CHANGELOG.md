@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-09-24
+
+- **Dashboard de Controle de Acesso (`admin.html`):** Painel administrativo exclusivo para gestão de estudantes e controle de permissões.
+- **Métricas e KPIs em Tempo Real:** Total de alunos, acessos ativos, alunos suspensos, total de questões resolvidas e taxa média de acerto da turma.
+- **Controle de Acesso com 1 Clique:** Capacidade de bloquear ou liberar o acesso de qualquer estudante instantaneamente.
+- **Acompanhamento Pedagógico Individual:** Visualização dos detalhes de cada aluno, incluindo histórico do caderno de erros e rascunho da produção textual (redação).
+- **Proteção e Segurança:** Regras de segurança no Firestore (`firestore.rules`) garantindo que apenas e-mails autorizados (`ADMIN_EMAILS`) possam listar ou alterar dados de outros usuários.
+- **Atalho no App:** Botão "Painel Admin" inserido automaticamente na barra de navegação quando um administrador autentica.
+
 ## 1.3.0 — 2026-09-24
 
 - **Autenticação com Google (OAuth):** Integração com Firebase Authentication para login seguro com 1 clique.

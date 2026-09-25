@@ -7,3 +7,8 @@ window.FIREBASE_CONFIG = {
   messagingSenderId: "966380159873",
   appId: "1:966380159873:web:1664e0e17fc01cccedde80"
 };
+
+// E-mails autorizados com perfil de Administrador para o Dashboard de Controle
+window.ADMIN_EMAILS = [
+  "djkleber@gmail.com"
+];

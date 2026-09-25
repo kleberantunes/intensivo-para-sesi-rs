@@ -183,6 +183,25 @@
           userName.textContent = firstName;
         }
 
+        // Verifica se é administrador
+        const adminList = window.ADMIN_EMAILS || ["djkleber@gmail.com"];
+        const isAdmin = adminList.includes(user.email);
+        let adminLink = document.getElementById("adminPanelLink");
+        if (isAdmin) {
+          if (!adminLink) {
+            adminLink = document.createElement("a");
+            adminLink.id = "adminPanelLink";
+            adminLink.href = "admin.html";
+            adminLink.className = "btn-admin-nav";
+            adminLink.innerHTML = "⚙️ Painel Admin";
+            const authContainer = document.getElementById("authContainer");
+            if (authContainer) authContainer.prepend(adminLink);
+          }
+          adminLink.classList.remove("hidden");
+        } else if (adminLink) {
+          adminLink.classList.add("hidden");
+        }
+
         setSyncStatus("Sincronizando...", "⏳", true);
 
         // Carrega dados da nuvem
@@ -193,19 +212,39 @@
 
           if (snap.exists()) {
             const cloudData = snap.data();
+            // Verificação de controle de acesso: usuário bloqueado
+            if (cloudData.status === "blocked") {
+              setSyncStatus("Acesso suspenso", "🚫", false);
+              alert("Seu acesso a esta plataforma foi suspenso pelo administrador. Entre em contato com a coordenação.");
+              await signOut(auth);
+              return;
+            }
+
             const merged = mergeStates(localState, cloudData);
             if (window.applyCloudState) {
               window.applyCloudState(merged);
             }
             // Garante que o estado mais recente esteja atualizado na nuvem também
-            await setDoc(userRef, { ...merged, lastUpdated: Date.now() }, { merge: true });
+            await setDoc(userRef, {
+              ...merged,
+              status: cloudData.status || "active",
+              lastLoginAt: Date.now(),
+              lastUpdated: Date.now(),
+              userEmail: user.email,
+              userName: user.displayName,
+              userPhoto: user.photoURL || ""
+            }, { merge: true });
           } else if (localState) {
             // Primeiro login deste usuário: salva o estado local dele na nuvem
             await setDoc(userRef, {
               ...localState,
+              status: "active",
+              createdAt: Date.now(),
+              lastLoginAt: Date.now(),
               lastUpdated: Date.now(),
               userEmail: user.email,
-              userName: user.displayName
+              userName: user.displayName,
+              userPhoto: user.photoURL || ""
             });
           }
 
