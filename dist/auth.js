@@ -9,6 +9,7 @@
   let db = null;
   let currentUser = null;
   let saveTimeout = null;
+  let pendingStateToSave = null;
 
   // Elementos da interface
   const loginBtn = document.getElementById("loginBtn");
@@ -23,6 +24,41 @@
     syncStatus.textContent = `${icon} ${text}`.trim();
     syncStatus.className = `sync-badge ${isPending ? 'pending' : 'synced'}`;
   }
+
+  // Fila de sincronização ativa imediatamente para não perder nenhum clique inicial
+  window.cloudSync = {
+    isReady: () => !!(currentUser && db),
+    scheduleSave: (state) => {
+      pendingStateToSave = state;
+      if (!currentUser || !db) return;
+      setSyncStatus("Alterações pendentes...", "⏳", true);
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        syncToCloud(state);
+      }, 1000);
+    },
+    flushSave: async () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+      }
+      if (pendingStateToSave && currentUser && db) {
+        await syncToCloud(pendingStateToSave);
+      }
+    }
+  };
+
+  // Garante que o progresso seja gravado se o aluno fechar ou trocar de aba no celular/navegador
+  window.addEventListener("beforeunload", () => {
+    if (window.cloudSync && typeof window.cloudSync.flushSave === "function") {
+      window.cloudSync.flushSave();
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden" && window.cloudSync && typeof window.cloudSync.flushSave === "function") {
+      window.cloudSync.flushSave();
+    }
+  });
 
   function showSetupModal() {
     let modal = document.getElementById("authSetupModal");
@@ -62,12 +98,109 @@
     if (loginBtn) {
       loginBtn.addEventListener("click", showSetupModal);
     }
-    // Define cloudSync stub
-    window.cloudSync = {
-      isReady: () => false,
-      scheduleSave: () => {}
-    };
     return;
+  }
+
+  // Função de fusão (merge) inteligente entre estado local e da nuvem
+  function mergeStates(local, cloud) {
+    if (!cloud) return local;
+    if (!local) return cloud;
+
+    const merged = { ...local };
+
+    // Se a nuvem tem mais questões respondidas, herdamos o placar da nuvem;
+    // Se o dispositivo local tem mais ou igual, mantemos o local mais avançado.
+    const cloudAns = typeof cloud.answered === "number" ? cloud.answered : 0;
+    const localAns = typeof local.answered === "number" ? local.answered : 0;
+    if (cloudAns > localAns) {
+      merged.answered = cloudAns;
+      merged.correct = typeof cloud.correct === "number" ? cloud.correct : 0;
+    } else {
+      merged.answered = localAns;
+      merged.correct = typeof local.correct === "number" ? local.correct : 0;
+    }
+
+    // Funde o histórico de erros evitando duplicações por texto da questão
+    const errorMap = new Map();
+    (cloud.errors || []).forEach(e => { if (e && e.question) errorMap.set(e.question, e); });
+    (local.errors || []).forEach(e => { if (e && e.question) errorMap.set(e.question, e); });
+    merged.errors = Array.from(errorMap.values());
+
+    // Funde os tópicos com o maior número de tentativas e acertos
+    merged.topics = { ...(cloud.topics || {}) };
+    Object.entries(local.topics || {}).forEach(([k, v]) => {
+      if (!v) return;
+      if (!merged.topics[k]) {
+        merged.topics[k] = v;
+      } else {
+        merged.topics[k] = {
+          a: Math.max(merged.topics[k].a || 0, v.a || 0),
+          c: Math.max(merged.topics[k].c || 0, v.c || 0)
+        };
+      }
+    });
+
+    // Redação: mantém a mais completa ou com mais texto
+    const localEssay = (local.essay || "").trim();
+    const cloudEssay = (cloud.essay || "").trim();
+    if (cloudEssay.length > localEssay.length) {
+      merged.essay = cloud.essay;
+    } else {
+      merged.essay = local.essay || "";
+    }
+
+    // Checks da redação
+    merged.checks = { ...(cloud.checks || {}), ...(local.checks || {}) };
+
+    // Módulos completados (união dos conjuntos)
+    const completedSet = new Set([...(cloud.completed || []), ...(local.completed || [])]);
+    merged.completed = Array.from(completedSet);
+
+    // Questões já visualizadas
+    merged.seen = { ...(cloud.seen || {}) };
+    Object.entries(local.seen || {}).forEach(([k, list]) => {
+      const set = new Set([...(merged.seen[k] || []), ...(Array.isArray(list) ? list : [])]);
+      merged.seen[k] = Array.from(set);
+    });
+
+    return merged;
+  }
+
+  // Prepara payload estritamente válido para o Firestore (sem valores undefined)
+  function buildFirestoreData(state, user, extra = {}) {
+    return {
+      answered: typeof state.answered === "number" ? state.answered : 0,
+      correct: typeof state.correct === "number" ? state.correct : 0,
+      errors: Array.isArray(state.errors) ? state.errors : [],
+      topics: (state.topics && typeof state.topics === "object") ? state.topics : {},
+      essay: typeof state.essay === "string" ? state.essay : "",
+      checks: (state.checks && typeof state.checks === "object") ? state.checks : {},
+      completed: Array.isArray(state.completed) ? state.completed : [],
+      seen: (state.seen && typeof state.seen === "object") ? state.seen : {},
+      lastUpdated: Date.now(),
+      userEmail: user.email || "",
+      userName: user.displayName || "Estudante",
+      userPhoto: user.photoURL || "",
+      ...extra
+    };
+  }
+
+  // Sincronização para a nuvem
+  async function syncToCloud(state) {
+    if (!currentUser || !db || !state) return;
+    try {
+      setSyncStatus("Salvando...", "⏳", true);
+      const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const userRef = doc(db, "users", currentUser.uid);
+      const dataToSave = buildFirestoreData(state, currentUser);
+
+      await setDoc(userRef, dataToSave, { merge: true });
+      pendingStateToSave = null;
+      setSyncStatus("Salvo", "☁️", false);
+    } catch (err) {
+      console.error("Erro ao salvar progresso na nuvem:", err);
+      setSyncStatus("Erro ao sincronizar", "⚠️", false);
+    }
   }
 
   try {
@@ -79,93 +212,6 @@
     const app = initializeApp(config);
     auth = getAuth(app);
     db = getFirestore(app);
-
-    // Função de fusão (merge) inteligente entre estado local e da nuvem
-    function mergeStates(local, cloud) {
-      if (!cloud) return local;
-      if (!local) return cloud;
-
-      const merged = { ...local };
-
-      // Se a nuvem tem mais questões respondidas, herdamos o placar da nuvem
-      if ((cloud.answered || 0) >= (local.answered || 0)) {
-        merged.answered = cloud.answered;
-        merged.correct = cloud.correct || 0;
-      }
-
-      // Funde o histórico de erros evitando duplicações por texto da questão
-      const errorMap = new Map();
-      (cloud.errors || []).forEach(e => errorMap.set(e.question, e));
-      (local.errors || []).forEach(e => errorMap.set(e.question, e));
-      merged.errors = Array.from(errorMap.values());
-
-      // Funde os tópicos
-      merged.topics = { ...(cloud.topics || {}) };
-      Object.entries(local.topics || {}).forEach(([k, v]) => {
-        if (!merged.topics[k]) {
-          merged.topics[k] = v;
-        } else {
-          merged.topics[k] = {
-            a: Math.max(merged.topics[k].a, v.a),
-            c: Math.max(merged.topics[k].c, v.c)
-          };
-        }
-      });
-
-      // Redação: mantém a mais completa ou mais recente
-      if (cloud.essay && (!local.essay || cloud.essay.length > local.essay.length)) {
-        merged.essay = cloud.essay;
-      }
-
-      // Checks da redação
-      merged.checks = { ...(cloud.checks || {}), ...(local.checks || {}) };
-
-      // Módulos completados (união dos conjuntos)
-      const completedSet = new Set([...(cloud.completed || []), ...(local.completed || [])]);
-      merged.completed = Array.from(completedSet);
-
-      // Questões já visualizadas
-      merged.seen = { ...(cloud.seen || {}) };
-      Object.entries(local.seen || {}).forEach(([k, list]) => {
-        const set = new Set([...(merged.seen[k] || []), ...(list || [])]);
-        merged.seen[k] = Array.from(set);
-      });
-
-      return merged;
-    }
-
-    // Sincronização para a nuvem com debounce
-    async function syncToCloud(state) {
-      if (!currentUser || !db) return;
-      try {
-        setSyncStatus("Salvando...", "⏳", true);
-        const userRef = doc(db, "users", currentUser.uid);
-        const dataToSave = {
-          ...state,
-          lastUpdated: Date.now(),
-          userEmail: currentUser.email,
-          userName: currentUser.displayName
-        };
-        await setDoc(userRef, dataToSave, { merge: true });
-        setSyncStatus("Salvo", "☁️", false);
-      } catch (err) {
-        console.error("Erro ao salvar progresso na nuvem:", err);
-        setSyncStatus("Erro ao sincronizar", "⚠️", false);
-      }
-    }
-
-    // Interface pública de sincronização
-    window.cloudSync = {
-      isReady: () => !!currentUser,
-      scheduleSave: (state) => {
-        if (!currentUser) return;
-        setSyncStatus("Alterações pendentes...", "⏳", true);
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(() => {
-          syncToCloud(state);
-        }, 1200);
-      }
-    };
 
     // Monitoramento do estado de autenticação
     onAuthStateChanged(auth, async (user) => {
@@ -224,28 +270,26 @@
             if (window.applyCloudState) {
               window.applyCloudState(merged);
             }
+
             // Garante que o estado mais recente esteja atualizado na nuvem também
-            await setDoc(userRef, {
-              ...merged,
+            const dataToUpdate = buildFirestoreData(merged, user, {
               status: cloudData.status || "active",
-              lastLoginAt: Date.now(),
-              lastUpdated: Date.now(),
-              userEmail: user.email,
-              userName: user.displayName,
-              userPhoto: user.photoURL || ""
-            }, { merge: true });
+              lastLoginAt: Date.now()
+            });
+            await setDoc(userRef, dataToUpdate, { merge: true });
           } else if (localState) {
             // Primeiro login deste usuário: salva o estado local dele na nuvem
-            await setDoc(userRef, {
-              ...localState,
+            const initialData = buildFirestoreData(localState, user, {
               status: "active",
               createdAt: Date.now(),
-              lastLoginAt: Date.now(),
-              lastUpdated: Date.now(),
-              userEmail: user.email,
-              userName: user.displayName,
-              userPhoto: user.photoURL || ""
+              lastLoginAt: Date.now()
             });
+            await setDoc(userRef, initialData, { merge: true });
+          }
+
+          // Se havia alguma gravação pendente antes do auth terminar, grava agora
+          if (pendingStateToSave) {
+            await syncToCloud(pendingStateToSave);
           }
 
           setSyncStatus("Sincronizado", "☁️", false);
@@ -289,6 +333,9 @@
     if (logoutBtn) {
       logoutBtn.addEventListener("click", async () => {
         try {
+          if (window.cloudSync && typeof window.cloudSync.flushSave === "function") {
+            await window.cloudSync.flushSave();
+          }
           await signOut(auth);
           if (typeof window.toast === "function") {
             window.toast("Você saiu da conta.");

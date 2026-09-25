@@ -15,10 +15,15 @@ service cloud.firestore {
       // Listagem geral de usuários: exclusivamente para o administrador
       allow list: if isAdmin();
       
-      // Gravação: administrador pode alterar tudo (incluindo status); usuário pode gravar se não estiver bloqueado
+      // Gravação: administrador pode alterar tudo (incluindo status); 
+      // Usuário pode gravar se for o dono da conta e não estiver com acesso bloqueado.
+      // Usamos checagem defensiva de existência (!('status' in resource.data)) para evitar erros caso o campo ainda não exista.
       allow write: if request.auth != null && (
         isAdmin() || 
-        (request.auth.uid == userId && (resource == null || resource.data.status != 'blocked'))
+        (
+          request.auth.uid == userId && 
+          (resource == null || !('status' in resource.data) || resource.data.status != 'blocked')
+        )
       );
     }
   }

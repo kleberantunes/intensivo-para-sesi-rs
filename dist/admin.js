@@ -33,6 +33,9 @@
   let db = null;
   let currentAdmin = null;
   let allStudents = [];
+  let unsubscribeRealtime = null;
+  let currentModalUserId = null;
+
   const defaultAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
 
   function toast(msg) {
@@ -54,7 +57,7 @@
   try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js");
     const { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { getFirestore, collection, getDocs, doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { getFirestore, collection, doc, setDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
     const app = initializeApp(config);
     auth = getAuth(app);
@@ -66,6 +69,10 @@
       currentAdmin = user;
 
       if (!user) {
+        if (unsubscribeRealtime) {
+          unsubscribeRealtime();
+          unsubscribeRealtime = null;
+        }
         dashboardView.classList.add("hidden");
         adminProfile.classList.add("hidden");
         authGate.classList.remove("hidden");
@@ -76,6 +83,10 @@
 
       const isAdmin = adminEmails.includes(user.email);
       if (!isAdmin) {
+        if (unsubscribeRealtime) {
+          unsubscribeRealtime();
+          unsubscribeRealtime = null;
+        }
         dashboardView.classList.add("hidden");
         adminProfile.classList.add("hidden");
         authGate.classList.remove("hidden");
@@ -90,20 +101,25 @@
       adminProfile.classList.remove("hidden");
 
       if (adminAvatar) {
-        adminAvatar.src = user.photoURL || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2366758a'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+        adminAvatar.src = user.photoURL || defaultAvatar;
       }
       if (adminName) {
         adminName.textContent = (user.displayName || "Admin").split(" ")[0];
       }
 
-      loadStudents();
+      startRealtimeListener();
     });
 
-    // Carregamento de todos os estudantes no Firestore
-    async function loadStudents() {
-      try {
-        usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);">Carregando estudantes...</td></tr>`;
-        const snap = await getDocs(collection(db, "users"));
+    // Monitoramento e sincronização em TEMPO REAL de todos os estudantes no Firestore
+    function startRealtimeListener() {
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+        unsubscribeRealtime = null;
+      }
+
+      usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);">Conectando em tempo real aos estudantes...</td></tr>`;
+
+      unsubscribeRealtime = onSnapshot(collection(db, "users"), (snap) => {
         allStudents = [];
 
         snap.forEach((d) => {
@@ -115,12 +131,13 @@
             email: data.userEmail || "Sem e-mail",
             photo: data.userPhoto || "",
             status: data.status || "active",
-            answered: data.answered || 0,
-            correct: data.correct || 0,
-            errors: data.errors || [],
-            essay: data.essay || "",
-            checks: data.checks || {},
-            completed: data.completed || [],
+            answered: typeof data.answered === "number" ? data.answered : 0,
+            correct: typeof data.correct === "number" ? data.correct : 0,
+            errors: Array.isArray(data.errors) ? data.errors : [],
+            essay: typeof data.essay === "string" ? data.essay : "",
+            checks: (data.checks && typeof data.checks === "object") ? data.checks : {},
+            completed: Array.isArray(data.completed) ? data.completed : [],
+            topics: (data.topics && typeof data.topics === "object") ? data.topics : {},
             lastUpdated: data.lastUpdated || data.lastLoginAt || 0,
             createdAt: data.createdAt || 0
           });
@@ -128,10 +145,15 @@
 
         renderKPIs();
         renderTable();
-      } catch (err) {
-        console.error("Erro ao carregar estudantes:", err);
+
+        // Se houver um modal de detalhes aberto para um aluno, atualiza em tempo real
+        if (currentModalUserId) {
+          renderDetailModalContent(currentModalUserId);
+        }
+      }, (err) => {
+        console.error("Erro no listener em tempo real:", err);
         usersTableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--red);">Erro ao consultar estudantes: ${err.message}</td></tr>`;
-      }
+      });
     }
 
     function renderKPIs() {
@@ -165,8 +187,8 @@
 
       // Ordenação
       filtered.sort((a, b) => {
-        if (sort === "lastActive") return b.lastUpdated - a.lastUpdated;
-        if (sort === "questions") return b.answered - a.answered;
+        if (sort === "lastActive") return (b.lastUpdated || 0) - (a.lastUpdated || 0);
+        if (sort === "questions") return (b.answered || 0) - (a.answered || 0);
         if (sort === "rate") {
           const rateA = a.answered ? a.correct / a.answered : 0;
           const rateB = b.answered ? b.correct / b.answered : 0;
@@ -186,7 +208,8 @@
         const rate = u.answered ? Math.round(u.correct / u.answered * 100) : 0;
         const rateClass = rate >= 70 ? "good" : rate >= 50 ? "warn" : "bad";
         const wordCount = u.essay ? u.essay.trim().split(/\s+/).filter(Boolean).length : 0;
-        const socioDone = u.completed.includes("socio");
+        const socioDone = u.completed && u.completed.includes("socio");
+        const checkedCount = Object.values(u.checks || {}).filter(Boolean).length;
 
         return `
           <tr>
@@ -213,7 +236,7 @@
             </td>
             <td>
               <div>${wordCount > 0 ? `<b>${wordCount}</b> palavras` : '<span style="color:var(--muted);">Não iniciada</span>'}</div>
-              <small style="color:var(--muted);">${Object.values(u.checks).filter(Boolean).length}/4 tópicos</small>
+              <small style="color:var(--muted);">${checkedCount}/4 tópicos</small>
             </td>
             <td>
               <span style="font-weight:700; color:${socioDone ? '#15803d' : '#94a3b8'};">
@@ -256,13 +279,18 @@
       }
     };
 
-    // Modal de Detalhes Pedagógicos do Estudante
-    window.openDetailModal = function (userId) {
+    // Renderizador do conteúdo do modal de detalhes (para abertura e atualização em tempo real)
+    function renderDetailModalContent(userId) {
       const u = allStudents.find(x => x.id === userId);
-      if (!u) return;
+      if (!u) {
+        window.closeDetailModal();
+        return;
+      }
 
       const isBlocked = u.status === "blocked";
       const wordCount = u.essay ? u.essay.trim().split(/\s+/).filter(Boolean).length : 0;
+      const rate = u.answered ? Math.round(u.correct / u.answered * 100) : 0;
+      const socioDone = u.completed && u.completed.includes("socio");
 
       detailModalContainer.innerHTML = `
         <div class="modal-overlay" onclick="if(event.target === this) window.closeDetailModal()">
@@ -279,12 +307,36 @@
             </div>
 
             <div class="detail-section">
+              <h4>Resumo Pedagógico</h4>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:8px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--line);">
+                  <small style="color:var(--muted);">Questões Feitas</small>
+                  <div style="font-size:1.3rem; font-weight:800; color:var(--blue);">${u.answered}</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--line);">
+                  <small style="color:var(--muted);">Taxa de Acertos</small>
+                  <div style="font-size:1.3rem; font-weight:800; color:${rate >= 60 ? '#15803d' : '#b52e3b'};">${rate}% (${u.correct} certos)</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--line);">
+                  <small style="color:var(--muted);">Socioemocional</small>
+                  <div style="font-size:1.1rem; font-weight:800; color:${socioDone ? '#15803d' : '#94a3b8'}; margin-top:2px;">
+                    ${socioDone ? '✅ Concluído' : '⏳ Pendente'}
+                  </div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:10px; border:1px solid var(--line);">
+                  <small style="color:var(--muted);">Último Acesso</small>
+                  <div style="font-size:0.95rem; font-weight:700; color:var(--ink); margin-top:4px;">${formatDate(u.lastUpdated)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="detail-section">
               <h4>Controle de Acesso</h4>
               <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:12px 16px; border-radius:12px; border:1px solid var(--line);">
                 <div>
                   Status Atual: <span class="status-badge ${isBlocked ? 'blocked' : 'active'}">${isBlocked ? '🚫 Bloqueado' : '🟢 Ativo (Liberado)'}</span>
                 </div>
-                <button class="btn-sm ${isBlocked ? 'btn-unblock' : 'btn-block'}" onclick="window.toggleUserStatus('${u.id}', '${isBlocked ? 'active' : 'blocked'}'); window.closeDetailModal();">
+                <button class="btn-sm ${isBlocked ? 'btn-unblock' : 'btn-block'}" onclick="window.toggleUserStatus('${u.id}', '${isBlocked ? 'active' : 'blocked'}');">
                   ${isBlocked ? 'Desbloquear Aluno' : 'Suspender Aluno'}
                 </button>
               </div>
@@ -311,9 +363,16 @@
           </div>
         </div>
       `;
+    }
+
+    // Modal de Detalhes Pedagógicos do Estudante
+    window.openDetailModal = function (userId) {
+      currentModalUserId = userId;
+      renderDetailModalContent(userId);
     };
 
     window.closeDetailModal = function () {
+      currentModalUserId = null;
       detailModalContainer.innerHTML = "";
     };
 
@@ -321,7 +380,10 @@
     searchInput.addEventListener("input", renderTable);
     statusFilter.addEventListener("change", renderTable);
     sortBy.addEventListener("change", renderTable);
-    refreshBtn.addEventListener("click", loadStudents);
+    refreshBtn.addEventListener("click", () => {
+      startRealtimeListener();
+      toast("Lista sincronizada em tempo real!");
+    });
 
     // Botão de Login da Barreira
     gateLoginBtn.addEventListener("click", async () => {
@@ -335,6 +397,7 @@
 
     // Logout
     adminLogoutBtn.addEventListener("click", async () => {
+      if (unsubscribeRealtime) unsubscribeRealtime();
       await signOut(auth);
       location.reload();
     });
