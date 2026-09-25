@@ -59,21 +59,12 @@
     const ref=api.doc(db,'users',identity.uid);
     return api.runTransaction(db,async tx=>{
       const saved=await tx.get(ref);
-      let cloud=saved.exists()?saved.data():null;
-      if(!saved.exists()&&identity.email) {
-        const preDocId='student_'+identity.email.toLowerCase().replace(/[^a-z0-9]/g,'_');
-        const preRef=api.doc(db,'users',preDocId);
-        const preSaved=await tx.get(preRef);
-        if(preSaved.exists()) {
-          cloud=preSaved.data();
-          try { tx.delete(preRef); } catch(e){}
-        }
-      }
+      const cloud=saved.exists()?saved.data():null;
       if(cloud?.status==='blocked')throw Object.assign(new Error('Acesso suspenso'),{code:'access-blocked'});
       const merged=P.merge(snapshot,cloud);
       const userStatus=cloud?.status||'active';
       const userCreated=cloud?.createdAt||Date.now();
-      tx.set(ref,{...payload(merged,identity),...extra,status:userStatus,createdAt:userCreated,isPreRegistered:false},{merge:true});
+      tx.set(ref,{...payload(merged,identity),...extra,status:userStatus,createdAt:userCreated,lastUpdated:Date.now()},{merge:true});
       return merged;
     });
   }
@@ -154,25 +145,51 @@
     };
     el('loginBtn').onclick=async()=>{
       el('loginBtn').disabled=true;
+      status('Conectando Google…');
       const provider=new authApi.GoogleAuthProvider();
-      const guest=user?.isAnonymous?{uid:user.uid,state:current()}:null;
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const guestProgress=current();
+      const guestUid=user?.isAnonymous?user.uid:null;
       try {
-        if(guest) {
+        let loggedUser=null;
+        if(guestUid) {
           try {
-            const result=await authApi.linkWithPopup(auth.currentUser,provider);
-            await handleIdentity(result.user);
+            const linkRes=await authApi.linkWithPopup(auth.currentUser,provider);
+            loggedUser=linkRes.user;
           } catch(err) {
-            if(err.code!=='auth/credential-already-in-use')throw err;
-            const credential=authApi.GoogleAuthProvider.credentialFromError(err);
-            if(!credential)throw err;
-            transferGuest={uid:guest.uid,state:current()};
-            await authApi.signInWithCredential(auth,credential);
+            if(err.code==='auth/credential-already-in-use'||err.code==='auth/account-exists-with-different-credential') {
+              const credential=authApi.GoogleAuthProvider.credentialFromError(err);
+              transferGuest={uid:guestUid,state:guestProgress};
+              if(credential) {
+                const signRes=await authApi.signInWithCredential(auth,credential);
+                loggedUser=signRes.user;
+              } else {
+                const signRes=await authApi.signInWithPopup(auth,provider);
+                loggedUser=signRes.user;
+              }
+            } else if(err.code==='auth/provider-already-linked') {
+              loggedUser=auth.currentUser;
+            } else {
+              throw err;
+            }
           }
-        } else await authApi.signInWithPopup(auth,provider);
+        } else {
+          const signRes=await authApi.signInWithPopup(auth,provider);
+          loggedUser=signRes.user;
+        }
+        if(loggedUser) {
+          await handleIdentity(loggedUser);
+          window.toast('Login realizado com sucesso! Bem-vindo(a), '+(loggedUser.displayName?loggedUser.displayName.split(' ')[0]:'Estudante')+'.');
+        }
       } catch(err) {
         transferGuest=null;
-        console.error('Login não concluído:',err.code);
-        if(err.code!=='auth/popup-closed-by-user')window.toast('Não foi possível entrar. Seu progresso permanece no aparelho.');
+        console.error('Login não concluído:',err.code,err.message);
+        if(err.code==='auth/popup-blocked') {
+          window.toast('Janela pop-up bloqueada pelo navegador. Permita pop-ups para fazer login.');
+        } else if(err.code!=='auth/popup-closed-by-user') {
+          window.toast('Não foi possível entrar. Seu progresso permanece seguro neste aparelho.');
+        }
+        status('Salvo no aparelho · conexão pendente');
       } finally {el('loginBtn').disabled=false;}
     };
     el('logoutBtn').onclick=async()=>{

@@ -14,6 +14,14 @@
 
 ## 🕒 Linha do Tempo e Histórico Completo de Alterações
 
+### [v1.7.2] — 25/09/2026
+#### 1. Inclusão Automática e Instantânea no Primeiro Login Google
+- **Zero Ação Prévia Exigida:** Qualquer novo estudante que entrar no site e clicar em "Entrar com Google" tem sua conta criada de forma totalmente automática no Firestore e aparece instantaneamente no Painel do Administrador em tempo real.
+- **Causa Raiz Resolvida:** O código anterior tentava consultar um documento de pré-cadastro em `users/student_...` durante a transação de login do aluno; as regras de segurança do Firestore rejeitavam a leitura porque o UID do documento pertencia a outro identificador (`isOwner(uid)` falhava com `permission-denied`), impedindo a criação do documento do novo aluno.
+- **Transação Limpa & Direta:** O método `commit` agora grava diretamente em `users/{identity.uid}` com `status: 'active'`, herdando dados de nome, e-mail e foto do Google sem bloqueios.
+- **Preservação de Progresso Local:** Qualquer questão ou simulado feito pelo estudante antes de clicar em "Entrar" é transferido e fundido imediatamente na conta Google recém-conectada.
+- **Versionamento Global:** Elevado para `v1.7.2` em todos os pontos com headers `no-cache` para atualização imediata.
+
 ### [v1.7.1] — 25/09/2026
 #### 1. Cadastro e Adição de Novos Estudantes pelo Painel Admin
 - **Botão `➕ Adicionar Estudante`:** Integrado ao header do painel administrativo com modal interativo.

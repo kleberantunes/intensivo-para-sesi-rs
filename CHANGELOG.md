@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.2 — 2026-09-25
+
+- **Inclusão 100% Automática de Novos Alunos no Login Google (`auth.js`):** Qualquer estudante que acesse a plataforma e faça login com a conta Google é cadastrado instantaneamente no Firestore e passa a constar automaticamente no Painel Admin em tempo real, sem necessidade de qualquer pré-cadastro manual.
+- **Eliminação de Erro de Permissão (`permission-denied`):** Removida a tentativa interna de leitura de documentos de outros IDs durante o login, garantindo que o Firestore execute a criação inicial do documento de forma limpa, autorizada e sem bloqueios.
+- **Fluxo de Login Resiliente:** Tratamento inteligente de pop-up e vinculação direta de credenciais Google, preservando o progresso feito enquanto visitante e migrando-o imediatamente para a conta Google conectada.
+- **Cache-Busting Global v1.7.2:** Atualização de versão em todos os scripts e folhas de estilo para entrega instantânea a todos os estudantes.
+
 ## 1.7.1 — 2026-09-25
 
 - **Cadastro e Adição de Novos Estudantes no Painel Admin (`admin.html` / `admin.js`):** Implementado botão `➕ Adicionar Estudante` com modal interativo para cadastro de nome, e-mail Google e status de acesso (Ativo/Bloqueado).
