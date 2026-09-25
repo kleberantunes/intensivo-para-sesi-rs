@@ -14,6 +14,15 @@
 
 ## 🕒 Linha do Tempo e Histórico Completo de Alterações
 
+### [v1.7.3] — 25/09/2026
+#### 1. Sistema Didático "Entenda o Erro & Aprenda a Fazer"
+- **Diagnóstico Comparativo Visual:** Ao errar uma questão, o aluno visualiza lado a lado a opção que marcou em destaque de alerta (❌) e a opção correta oficial (✅).
+- **Resolução Passo a Passo:** Seção com a explicação pedagógica detalhada do raciocínio matemático ou linguístico exigido pela questão.
+- **Dicas Práticas do Professor:** Recomendações e estratégias de prova específicas para os temas de maior incidência no processo seletivo do SESI/SENAI (Porcentagem, Regra de Três, Equações, Perímetro vs Área, Pitágoras, Interpretação, Coesão e Figuras de Linguagem).
+- **Aprendizagem Ativa (Tentar Novamente):** Botão `🔄 Tentar Novamente Esta Questão` disponível no modo de prática para o aluno aplicar imediatamente o método aprendido e fixar a resposta correta.
+- **Caderno de Erros Reformulado:** Lista de erros com cartões de alta legibilidade, comparativo de alternativas e botão para limpar erros já superados.
+- **Gabarito de Provas e Simulados:** Diagnóstico idêntico integrado à revisão detalhada do Simulado Oficial 2025 e do Simulado Final.
+
 ### [v1.7.2] — 25/09/2026
 #### 1. Inclusão Automática e Instantânea no Primeiro Login Google
 - **Zero Ação Prévia Exigida:** Qualquer novo estudante que entrar no site e clicar em "Entrar com Google" tem sua conta criada de forma totalmente automática no Firestore e aparece instantaneamente no Painel do Administrador em tempo real.

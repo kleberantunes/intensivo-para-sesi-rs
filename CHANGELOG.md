@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.3 — 2026-09-25
+
+- **Módulo Pedagógico "Entenda o Erro & Aprenda a Fazer" (`app.js` / `styles.css`):** Ao errar qualquer questão, o estudante não recebe apenas um texto solto, mas sim um diagnóstico completo estruturado:
+  - **Comparativo Visual Imediato:** Destaque lado a lado entre a alternativa assinalada pelo aluno (❌) e o gabarito oficial (✅).
+  - **Resolução Passo a Passo:** Explicação detalhada de como chegar ao resultado correto.
+  - **Dica de Prova do Professor:** Orientações e macetes específicos para cada habilidade da matriz SESI/SENAI (Porcentagem, Regra de Três, Equações, Perímetro/Área, Interpretação, Coesão, Figuras de Linguagem).
+- **Aprendizagem Ativa com Botão "Tentar Novamente":** Ao errar uma questão no modo de prática, o aluno pode clicar em `🔄 Tentar Novamente Esta Questão` para aplicar imediatamente o conceito aprendido e fixar na memória.
+- **Caderno de Erros Reformulado:** Interface do caderno de erros transformada em uma central de reforço ativo, com cartões pedagógicos de alta legibilidade e opção de limpar erros já superados.
+- **Gabarito de Simulados Enriquecido:** As revisões do Simulado Oficial 2025 e do Simulado Final agora utilizam o mesmo padrão pedagógico para todas as questões erradas.
+- **Cache-Busting Global v1.7.3:** Atualização automática em todos os arquivos de estilo e scripts para entrega imediata.
+
 ## 1.7.2 — 2026-09-25
 
 - **Inclusão 100% Automática de Novos Alunos no Login Google (`auth.js`):** Qualquer estudante que acesse a plataforma e faça login com a conta Google é cadastrado instantaneamente no Firestore e passa a constar automaticamente no Painel Admin em tempo real, sem necessidade de qualquer pré-cadastro manual.
